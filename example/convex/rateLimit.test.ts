@@ -1,9 +1,10 @@
 import { convexTest } from "convex-test";
 import { defineRateLimits, RateLimitConfig } from "../../src/client/index.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import schema from "./schema.js";
-import { api } from "./_generated/api.js";
 import { components } from "./_generated/server.js";
+import { defineSchema } from "convex/server";
+
+const schema = defineSchema({});
 
 const Second = 1_000;
 const Minute = 60 * Second;
