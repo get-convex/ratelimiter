@@ -307,16 +307,3 @@ type RateLimiterApi = InternalizeApi<typeof api>;
 //     >;
 //   };
 // };
-
-// on the Convex backend.
-declare global {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const Convex: any;
-}
-
-// TODO: is this necessary for components to add?
-if (typeof Convex === "undefined") {
-  throw new Error(
-    "this is Convex backend code, but it's running somewhere else!"
-  );
-}

@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import schema from "./schema.js";
 import { api } from "./_generated/api.js";
+import { modules } from "./setup.test.js";
 
 const Second = 1_000;
 const Minute = 60 * Second;
@@ -18,7 +19,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("retryAt is accurate", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const config = { kind, rate: 10, period: Minute };
       const one = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
@@ -80,7 +81,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("retryAt for reserved is accurate", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const config = { kind, rate: 10, period: Minute };
       vi.useFakeTimers();
       const one = await t.run(async (ctx) => {

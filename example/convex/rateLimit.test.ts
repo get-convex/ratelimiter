@@ -1,4 +1,3 @@
-import { defineTable, defineSchema } from "convex/server";
 import { convexTest } from "convex-test";
 import { defineRateLimits, RateLimitConfig } from "../../src/client/index.js";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -55,7 +54,7 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("consume too much", async () => {
       const t = convexTest(schema);
-      expect(() =>
+      await expect(() =>
         t.run(async (ctx) => {
           await ctx.runMutation(components.theComponent.public.rateLimit, {
             name: "simple",
@@ -201,7 +200,7 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("consume too much reserved", async () => {
       const t = convexTest(schema);
-      expect(() =>
+      await expect(() =>
         t.run(async (ctx) => {
           await ctx.runMutation(components.theComponent.public.rateLimit, {
             name: "simple",
@@ -223,7 +222,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       const { rateLimit } = defineRateLimits(components.theComponent, {
         simple: { kind, rate: 1, period: Second },
       });
-      expect(() =>
+      await expect(() =>
         t.run(async (ctx) => {
           await rateLimit(ctx, "simple");
           await rateLimit(ctx, "simple", { throws: true });
