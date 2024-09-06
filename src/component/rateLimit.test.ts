@@ -18,7 +18,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       vi.useRealTimers();
     });
 
-    test("retryAt is accurate", async () => {
+    test("retryAfter is accurate", async () => {
       const t = convexTest(schema, modules);
       const config = { kind, rate: 10, period: Minute };
       const one = await t.run(async (ctx) => {
@@ -28,7 +28,7 @@ describe.each(["token bucket", "fixed window"] as const)(
           config,
         });
         expect(result.ok).toBe(true);
-        expect(result.retryAt).toBe(undefined);
+        expect(result.retryAfter).toBe(undefined);
         return ctx.db
           .query("rateLimits")
           .withIndex("name", (q) => q.eq("name", "simple"))
@@ -47,7 +47,7 @@ describe.each(["token bucket", "fixed window"] as const)(
           config,
         });
         expect(result.ok).toBe(true);
-        expect(result.retryAt).toBe(undefined);
+        expect(result.retryAfter).toBe(undefined);
         return ctx.db
           .query("rateLimits")
           .withIndex("name", (q) => q.eq("name", "simple"))
@@ -69,7 +69,7 @@ describe.each(["token bucket", "fixed window"] as const)(
         // the token bucket needs to wait a minute from now
         // the fixed window needs to wait a minute from the last window
         // which is stored as ts.
-        expect(result.retryAt).toBe(two!.ts + Minute);
+        expect(result.retryAfter).toBe(Minute);
         return ctx.db
           .query("rateLimits")
           .withIndex("name", (q) => q.eq("name", "simple"))
@@ -80,7 +80,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       expect(three!.ts).toBe(two!.ts);
     });
 
-    test("retryAt for reserved is accurate", async () => {
+    test("retryAfter for reserved is accurate", async () => {
       const t = convexTest(schema, modules);
       const config = { kind, rate: 10, period: Minute };
       vi.useFakeTimers();
@@ -91,7 +91,7 @@ describe.each(["token bucket", "fixed window"] as const)(
           config,
         });
         expect(result.ok).toBe(true);
-        expect(result.retryAt).toBe(undefined);
+        expect(result.retryAfter).toBe(undefined);
         return ctx.db
           .query("rateLimits")
           .withIndex("name", (q) => q.eq("name", "simple"))
@@ -113,9 +113,9 @@ describe.each(["token bucket", "fixed window"] as const)(
         });
         expect(result.ok).toBe(true);
         if (kind === "token bucket") {
-          expect(result.retryAt).toBe(one!.ts + 6 * Second + Minute);
+          expect(result.retryAfter).toBe(6 * Second + Minute);
         } else {
-          expect(result.retryAt).toBe(one!.ts + 1 * Minute + Minute);
+          expect(result.retryAfter).toBe(1 * Minute + Minute);
         }
         return ctx.db
           .query("rateLimits")
@@ -138,9 +138,9 @@ describe.each(["token bucket", "fixed window"] as const)(
         });
         expect(result.ok).toBe(true);
         if (kind === "token bucket") {
-          expect(result.retryAt).toBe(two!.ts + 30 * Second + Minute);
+          expect(result.retryAfter).toBe(30 * Second + Minute);
         } else {
-          expect(result.retryAt).toBe(two!.ts + 2 * Minute);
+          expect(result.retryAfter).toBe(2 * Minute);
         }
         return ctx.db
           .query("rateLimits")

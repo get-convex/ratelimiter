@@ -52,7 +52,7 @@ export type RateLimitConfig =
  * @param count The number of tokens to consume. Defaults to 1.
  * @param reserve Whether to reserve the tokens ahead of time. Defaults to false.
  * @param throws Whether to throw an error if the rate limit is exceeded.
- * By default, check/consume will just return { ok: false, retryAt: number }.
+ * By default, check/consume will just return { ok: false, retryAfter: number }.
  * @param config The rate limit configuration, if specified inline.
  * If you use {@link defineRateLimits} to define the named rate limit, you don't
  * specify the config inline.
@@ -71,11 +71,11 @@ export type RateLimitArgs = ObjectType<typeof rateLimitArgs>;
 export const rateLimitReturns = v.union(
   v.object({
     ok: v.literal(true),
-    retryAt: v.optional(v.number()),
+    retryAfter: v.optional(v.number()),
   }),
   v.object({
     ok: v.literal(false),
-    retryAt: v.number(),
+    retryAfter: v.number(),
   })
 );
 
@@ -84,5 +84,5 @@ export type RateLimitReturns = Infer<typeof rateLimitReturns>;
 export type RateLimitError = {
   kind: "RateLimited";
   name: string;
-  retryAt: number;
+  retryAfter: number;
 };

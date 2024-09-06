@@ -29,13 +29,13 @@ describe.each(["token bucket", "fixed window"] as const)(
       await t.run(async (ctx) => {
         const before = await checkRateLimit(ctx, "simple");
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         const actual = await rateLimit(ctx, "simple");
         expect(actual.ok).toBe(true);
-        expect(actual.retryAt).toBe(undefined);
+        expect(actual.retryAfter).toBe(undefined);
         const after = await checkRateLimit(ctx, "simple");
         expect(after.ok).toBe(false);
-        expect(after.retryAt).toBeGreaterThan(Date.now());
+        expect(after.retryAfter).toBeGreaterThan(0);
       });
     });
 
@@ -46,10 +46,10 @@ describe.each(["token bucket", "fixed window"] as const)(
       });
       const global = await t.run(async (ctx) => rateLimit(ctx, "simple"));
       expect(global.ok).toBe(true);
-      expect(global.retryAt).toBe(undefined);
+      expect(global.retryAfter).toBe(undefined);
       const after = await t.run(async (ctx) => rateLimit(ctx, "simple"));
       expect(after.ok).toBe(false);
-      expect(after.retryAt).toBeGreaterThan(Date.now());
+      expect(after.retryAfter).toBeGreaterThan(0);
     });
 
     test("consume too much", async () => {
@@ -78,12 +78,12 @@ describe.each(["token bucket", "fixed window"] as const)(
         rateLimit(ctx, "simple", { key: "key" })
       );
       expect(keyed.ok).toBe(true);
-      expect(keyed.retryAt).toBe(undefined);
+      expect(keyed.retryAfter).toBe(undefined);
       const keyed2 = await t.run(async (ctx) =>
         rateLimit(ctx, "simple", { key: "key2" })
       );
       expect(keyed2.ok).toBe(true);
-      expect(keyed2.retryAt).toBe(undefined);
+      expect(keyed2.retryAfter).toBe(undefined);
     });
 
     test("burst", async () => {
@@ -94,13 +94,13 @@ describe.each(["token bucket", "fixed window"] as const)(
       await t.run(async (ctx) => {
         const before = await rateLimit(ctx, "burst", { count: 3 });
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         const keyed = await rateLimit(ctx, "burst", {
           key: "foo",
           count: 3,
         });
         expect(keyed.ok).toBe(true);
-        expect(keyed.retryAt).toBe(undefined);
+        expect(keyed.retryAfter).toBe(undefined);
         const no = await rateLimit(ctx, "burst", { key: "foo" });
         expect(no.ok).toBe(false);
       });
@@ -117,11 +117,11 @@ describe.each(["token bucket", "fixed window"] as const)(
       await t.run(async (ctx) => {
         const before = await rateLimit(ctx, "simple");
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         await resetRateLimit(ctx, "simple");
         const after = await rateLimit(ctx, "simple");
         expect(after.ok).toBe(true);
-        expect(after.retryAt).toBe(undefined);
+        expect(after.retryAfter).toBe(undefined);
       });
     });
 
@@ -136,11 +136,11 @@ describe.each(["token bucket", "fixed window"] as const)(
       await t.run(async (ctx) => {
         const before = await rateLimit(ctx, "simple");
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         await resetRateLimit(ctx, "simple");
         const after = await rateLimit(ctx, "simple");
         expect(after.ok).toBe(true);
-        expect(after.retryAt).toBe(undefined);
+        expect(after.retryAfter).toBe(undefined);
       });
     });
 
@@ -155,16 +155,16 @@ describe.each(["token bucket", "fixed window"] as const)(
       await t.run(async (ctx) => {
         const before = await rateLimit(ctx, "res");
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         const reserved = await rateLimit(ctx, "res", {
           count: 100,
           reserve: true,
         });
         expect(reserved.ok).toBe(true);
-        expect(reserved.retryAt).toBeGreaterThan(Date.now());
+        expect(reserved.retryAfter).toBeGreaterThan(0);
         const noSimple = await checkRateLimit(ctx, "res");
         expect(noSimple.ok).toBe(false);
-        expect(noSimple.retryAt).toBeGreaterThan(reserved.retryAt!);
+        expect(noSimple.retryAfter).toBeGreaterThan(reserved.retryAfter!);
       });
     });
 
@@ -192,7 +192,7 @@ describe.each(["token bucket", "fixed window"] as const)(
           reserve: true,
         });
         expect(reserved.ok).toBe(true);
-        expect(reserved.retryAt).toBeGreaterThan(Date.now());
+        expect(reserved.retryAfter).toBeGreaterThan(0);
         const noSimple = await checkRateLimit(ctx, "res");
         expect(noSimple.ok).toBe(false);
       });
@@ -245,14 +245,14 @@ describe.each(["token bucket", "fixed window"] as const)(
       await t.run(async (ctx) => {
         const before = await rateLimit(ctx, "simple", { config });
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         const after = await checkRateLimit(ctx, "simple", { config });
         expect(after.ok).toBe(false);
-        expect(after.retryAt).toBeGreaterThan(Date.now());
+        expect(after.retryAfter).toBeGreaterThan(0);
         await resetRateLimit(ctx, "simple");
         const after2 = await checkRateLimit(ctx, "simple", { config });
         expect(after2.ok).toBe(true);
-        expect(after2.retryAt).toBe(undefined);
+        expect(after2.retryAfter).toBe(undefined);
       });
     });
 
@@ -269,13 +269,13 @@ describe.each(["token bucket", "fixed window"] as const)(
           { name: "simple", config }
         );
         expect(before.ok).toBe(true);
-        expect(before.retryAt).toBe(undefined);
+        expect(before.retryAfter).toBe(undefined);
         const after = await ctx.runQuery(
           components.theComponent.public.checkRateLimit,
           { name: "simple", config }
         );
         expect(after.ok).toBe(false);
-        expect(after.retryAt).toBeGreaterThan(Date.now());
+        expect(after.retryAfter).toBeGreaterThan(0);
         await ctx.runMutation(components.theComponent.public.resetRateLimit, {
           name: "simple",
         });
@@ -284,7 +284,7 @@ describe.each(["token bucket", "fixed window"] as const)(
           { name: "simple", config }
         );
         expect(after2.ok).toBe(true);
-        expect(after2.retryAt).toBe(undefined);
+        expect(after2.retryAfter).toBe(undefined);
       });
     });
   }

@@ -40,12 +40,12 @@ export const test = internalMutation({
       throws: true,
     });
     assert(first.ok);
-    assert(!first.retryAt);
+    assert(!first.retryAfter);
     const second = await rateLimiter.consume(ctx, "sendMessage", {
       key: "user1",
     });
     assert(second.ok);
-    assert(!second.retryAt);
+    assert(!second.retryAfter);
     // third
     await rateLimiter.consume(ctx, "sendMessage", {
       key: "user1",

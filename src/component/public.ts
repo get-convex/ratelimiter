@@ -66,7 +66,7 @@ async function checkRateLimitSharded(db: DatabaseReader, args: RateLimitArgs) {
   const existing2 = await getShard(db, name, args.key, shard2);
   const result2 = checkRateLimitInternal(existing2, args);
   if (!result1.ok) {
-    if (!result2.ok && result1.retryAt < result2.retryAt) {
+    if (!result2.ok && result1.retryAfter < result2.retryAfter) {
       return { status: result1, shard: shard1 };
     }
     return { status: result2, shard: shard2 };
@@ -126,14 +126,14 @@ function checkRateLimitInternal(
   };
   let ts,
     value,
-    retryAt: number | undefined = undefined;
+    retryAfter: number | undefined = undefined;
   if (config.kind === "token bucket") {
     const elapsed = now - state.ts;
     const rate = config.rate / shards / config.period;
     value = Math.min(state.value + elapsed * rate, max) - consuming;
     ts = now;
     if (value < 0) {
-      retryAt = now + -value / rate;
+      retryAfter = -value / rate;
     }
   } else {
     const elapsedWindows = Math.floor((Date.now() - state.ts) / config.period);
@@ -142,7 +142,7 @@ function checkRateLimitInternal(
     ts = state.ts + elapsedWindows * config.period;
     if (value < 0) {
       const windowsNeeded = Math.ceil(-value / rate);
-      retryAt = ts + config.period * windowsNeeded;
+      retryAfter = ts + config.period * windowsNeeded - now;
     }
   }
   if (value < 0) {
@@ -151,11 +151,11 @@ function checkRateLimitInternal(
         throw new ConvexError({
           kind: "RateLimited",
           name,
-          retryAt: retryAt!,
+          retryAfter: retryAfter!,
         } satisfies RateLimitError);
       }
-      return { ok: false, retryAt: retryAt! } as const;
+      return { ok: false, retryAfter: retryAfter! } as const;
     }
   }
-  return { ok: true, retryAt, ts, value } as const;
+  return { ok: true, retryAfter, ts, value } as const;
 }

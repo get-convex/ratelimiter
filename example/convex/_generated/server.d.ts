@@ -181,7 +181,7 @@ export declare const components: {
           reserve?: boolean;
           throws?: boolean;
         },
-        { ok: true; retryAt?: number } | { ok: false; retryAt: number }
+        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
       >;
       rateLimit: FunctionReference<
         "mutation",
@@ -211,7 +211,7 @@ export declare const components: {
           reserve?: boolean;
           throws?: boolean;
         },
-        { ok: true; retryAt?: number } | { ok: false; retryAt: number }
+        { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
       >;
       resetRateLimit: FunctionReference<
         "mutation",

@@ -77,13 +77,13 @@ export class RateLimiter<Limits extends Record<string, RateLimitConfig>> {
    * @param args.reserve Whether to reserve the tokens ahead of time. Defaults to
    * false.
    * @param args.throws Whether to throw an error if the rate limit is exceeded.
-   * By default, {@link rateLimit} will just return { ok: false, retryAt: number }
+   * By default, {@link rateLimit} will just return { ok: false, retryAfter: number }
    * @param arsg.config The inline configuration for the rate limit, if not
    * specified in the {@link defineRateLimits} definition.
    * See {@link RateLimitArgs} for more information.
-   * @returns { ok, retryAt }: `ok` is true if the rate limit is not exceeded.
-   * `retryAt` is the time in milliseconds when retrying could succeed.
-   * If `reserve` is true, `retryAt` is the time you must schedule the
+   * @returns { ok, retryAfter }: `ok` is true if the rate limit is not exceeded.
+   * `retryAfter` is the time in milliseconds when retrying could succeed.
+   * If `reserve` is true, `retryAfter` is the time you must schedule the
    * work to be done.
    */
   async check<Name extends string = keyof Limits & string>(
@@ -116,14 +116,14 @@ export class RateLimiter<Limits extends Record<string, RateLimitConfig>> {
    * @param args.reserve Whether to reserve the tokens ahead of time. Defaults to
    * false.
    * @param args.throws Whether to throw an error if the rate limit is exceeded.
-   * By default, {@link rateLimit} will just return { ok: false, retryAt: number }
+   * By default, {@link rateLimit} will just return { ok: false, retryAfter: number }
    * @param args.config If the name wasn't given to {@link defineRateLimits},
    * this is required as the configuration for the rate limit.
    * See {@link RateLimitArgs} for more information.
-   * @returns { ok, retryAt }: `ok` is true if the rate limit is not exceeded.
-   * `retryAt` is the time in milliseconds when retrying could succeed.
-   * If `reserve` is true, `retryAt` is the time you must schedule the
-   * work to be done.
+   * @returns { ok, retryAfter }: `ok` is true if the rate limit is not exceeded.
+   * `retryAfter` is the duration in milliseconds when retrying could succeed.
+   * If `reserve` is true, `retryAfter` is the duration you must schedule the
+   * work to be done after, e.g. `ctx.runAfter(retryAfter, ...`).
    */
   async consume<Name extends string = keyof Limits & string>(
     { runMutation }: RunMutationCtx,
@@ -236,74 +236,3 @@ type InternalizeApi<API> = Expand<{
     : InternalizeApi<API[K]>;
 }>;
 type RateLimiterApi = InternalizeApi<typeof api>;
-// TODO: copy in the final API from example/_generated/server.d.ts, like:
-// {
-//   public: {
-//     checkRateLimit: FunctionReference<
-//       "query",
-//       "internal",
-//       {
-//         config:
-//           | {
-//               capacity?: number;
-//               kind: "token bucket";
-//               maxReserved?: number;
-//               period: number;
-//               rate: number;
-//               shards?: number;
-//             }
-//           | {
-//               capacity?: number;
-//               kind: "fixed window";
-//               maxReserved?: number;
-//               period: number;
-//               rate: number;
-//               shards?: number;
-//               start?: number;
-//             };
-//         count?: number;
-//         key?: string;
-//         name: string;
-//         reserve?: boolean;
-//         throws?: boolean;
-//       },
-//       { ok: true; retryAt?: number } | { ok: false; retryAt: number }
-//     >;
-//     rateLimit: FunctionReference<
-//       "mutation",
-//       "internal",
-//       {
-//         config:
-//           | {
-//               capacity?: number;
-//               kind: "token bucket";
-//               maxReserved?: number;
-//               period: number;
-//               rate: number;
-//               shards?: number;
-//             }
-//           | {
-//               capacity?: number;
-//               kind: "fixed window";
-//               maxReserved?: number;
-//               period: number;
-//               rate: number;
-//               shards?: number;
-//               start?: number;
-//             };
-//         count?: number;
-//         key?: string;
-//         name: string;
-//         reserve?: boolean;
-//         throws?: boolean;
-//       },
-//       { ok: true; retryAt?: number } | { ok: false; retryAt: number }
-//     >;
-//     resetRateLimit: FunctionReference<
-//       "mutation",
-//       "internal",
-//       { key?: string; name: string },
-//       void
-//     >;
-//   };
-// };

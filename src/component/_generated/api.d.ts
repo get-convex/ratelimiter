@@ -58,7 +58,7 @@ declare const fullApiWithMounts: typeof fullApi & {
         reserve?: boolean;
         throws?: boolean;
       },
-      { ok: true; retryAt?: number } | { ok: false; retryAt: number }
+      { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
     >;
     rateLimit: FunctionReference<
       "mutation",
@@ -88,7 +88,7 @@ declare const fullApiWithMounts: typeof fullApi & {
         reserve?: boolean;
         throws?: boolean;
       },
-      { ok: true; retryAt?: number } | { ok: false; retryAt: number }
+      { ok: true; retryAfter?: number } | { ok: false; retryAfter: number }
     >;
     resetRateLimit: FunctionReference<
       "mutation",
