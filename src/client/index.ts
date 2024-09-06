@@ -125,7 +125,7 @@ export class RateLimiter<Limits extends Record<string, RateLimitConfig>> {
    * If `reserve` is true, `retryAfter` is the duration you must schedule the
    * work to be done after, e.g. `ctx.runAfter(retryAfter, ...`).
    */
-  async consume<Name extends string = keyof Limits & string>(
+  async limit<Name extends string = keyof Limits & string>(
     { runMutation }: RunMutationCtx,
     name: Name,
     args?: RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>
@@ -195,14 +195,14 @@ export function defineRateLimits<
   ratelimiter: RateLimiterApi,
   limits: Limits
 ): {
-  rateLimit: RateLimiter<Limits>["consume"];
+  rateLimit: RateLimiter<Limits>["limit"];
   checkRateLimit: RateLimiter<Limits>["check"];
   resetRateLimit: RateLimiter<Limits>["reset"];
 } {
   const client = new RateLimiter(ratelimiter, limits);
   return {
-    /** See {@link RateLimiter#consume} */
-    rateLimit: client.consume.bind(client),
+    /** See {@link RateLimiter#limit} */
+    rateLimit: client.limit.bind(client),
     /** See {@link RateLimiter#check} */
     checkRateLimit: client.check.bind(client),
     /** See {@link RateLimiter#reset} */

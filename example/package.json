@@ -3,8 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "convex dev",
-    "predev": "convex dev --until-success && convex dashboard",
+    "dev": "convex dev --local",
     "logs": "convex logs",
     "lint": "tsc -p convex && eslint convex"
   },

@@ -35,26 +35,26 @@ function assert<T extends string | boolean | object | undefined | null>(
 export const test = internalMutation({
   args: {},
   handler: async (ctx, args) => {
-    const first = await rateLimiter.consume(ctx, "sendMessage", {
+    const first = await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
       throws: true,
     });
     assert(first.ok);
     assert(!first.retryAfter);
-    const second = await rateLimiter.consume(ctx, "sendMessage", {
+    const second = await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
     });
     assert(second.ok);
     assert(!second.retryAfter);
     // third
-    await rateLimiter.consume(ctx, "sendMessage", {
+    await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
       throws: true,
     });
     let threw = false;
     // fourth should throw
     try {
-      await rateLimiter.consume(ctx, "sendMessage", {
+      await rateLimiter.limit(ctx, "sendMessage", {
         key: "user1",
         throws: true,
       });
