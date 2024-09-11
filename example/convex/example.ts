@@ -8,16 +8,16 @@ import {
   isRateLimitError,
   MINUTE,
   RateLimiter,
-} from "../../src/client/index.js";
+} from "@convex-dev/ratelimiter";
 
-const rateLimiter = new RateLimiter(components.theComponent, {
+const rateLimiter = new RateLimiter(components.ratelimiter, {
   // A per-user limit, allowing one every ~6 seconds.
   // Allows up to 3 in quick succession if they haven't sent many recently.
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
 });
 
 // alternative syntax
-const { rateLimit } = defineRateLimits(components.theComponent, {
+const { rateLimit: _ } = defineRateLimits(components.ratelimiter, {
   // One global / singleton rate limit
   freeTrialSignUp: { kind: "fixed window", rate: 100, period: HOUR },
 });
@@ -34,7 +34,7 @@ function assert<T extends string | boolean | object | undefined | null>(
 
 export const test = internalMutation({
   args: {},
-  handler: async (ctx, args) => {
+  handler: async (ctx) => {
     const first = await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
       throws: true,

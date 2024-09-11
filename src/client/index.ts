@@ -236,3 +236,5 @@ type InternalizeApi<API> = Expand<{
     : InternalizeApi<API[K]>;
 }>;
 type RateLimiterApi = InternalizeApi<typeof api>;
+
+export default RateLimiter;

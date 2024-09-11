@@ -22,7 +22,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     test("simple check", async () => {
       const t = convexTest(schema);
       const { checkRateLimit, rateLimit } = defineRateLimits(
-        components.theComponent,
+        components.ratelimiter,
         {
           simple: { kind, rate: 1, period: Second },
         }
@@ -42,7 +42,7 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("simple consume", async () => {
       const t = convexTest(schema);
-      const { rateLimit } = defineRateLimits(components.theComponent, {
+      const { rateLimit } = defineRateLimits(components.ratelimiter, {
         simple: { kind, rate: 1, period: Second },
       });
       const global = await t.run(async (ctx) => rateLimit(ctx, "simple"));
@@ -57,7 +57,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       const t = convexTest(schema);
       await expect(() =>
         t.run(async (ctx) => {
-          await ctx.runMutation(components.theComponent.public.rateLimit, {
+          await ctx.runMutation(components.ratelimiter.public.rateLimit, {
             name: "simple",
             count: 2,
             config: {
@@ -72,7 +72,7 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("keyed", async () => {
       const t = convexTest(schema);
-      const { rateLimit } = defineRateLimits(components.theComponent, {
+      const { rateLimit } = defineRateLimits(components.ratelimiter, {
         simple: { kind, rate: 1, period: Second },
       });
       const keyed = await t.run(async (ctx) =>
@@ -89,7 +89,7 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("burst", async () => {
       const t = convexTest(schema);
-      const { rateLimit } = defineRateLimits(components.theComponent, {
+      const { rateLimit } = defineRateLimits(components.ratelimiter, {
         burst: { kind, rate: 1, period: Second, capacity: 3 },
       });
       await t.run(async (ctx) => {
@@ -110,7 +110,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     test("simple reset", async () => {
       const t = convexTest(schema);
       const { rateLimit, resetRateLimit } = defineRateLimits(
-        components.theComponent,
+        components.ratelimiter,
         {
           simple: { kind, rate: 1, period: Second },
         }
@@ -129,7 +129,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     test("keyed reset", async () => {
       const t = convexTest(schema);
       const { rateLimit, resetRateLimit } = defineRateLimits(
-        components.theComponent,
+        components.ratelimiter,
         {
           simple: { kind, rate: 1, period: Second },
         }
@@ -148,7 +148,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     test("reserved without max", async () => {
       const t = convexTest(schema);
       const { rateLimit, checkRateLimit } = defineRateLimits(
-        components.theComponent,
+        components.ratelimiter,
         {
           res: { kind, rate: 1, period: Hour },
         }
@@ -172,7 +172,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     test("reserved with max", async () => {
       const t = convexTest(schema);
       const { rateLimit, checkRateLimit } = defineRateLimits(
-        components.theComponent,
+        components.ratelimiter,
         {
           res: {
             kind,
@@ -203,7 +203,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       const t = convexTest(schema);
       await expect(() =>
         t.run(async (ctx) => {
-          await ctx.runMutation(components.theComponent.public.rateLimit, {
+          await ctx.runMutation(components.ratelimiter.public.rateLimit, {
             name: "simple",
             count: 4,
             reserve: true,
@@ -220,7 +220,7 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("throws", async () => {
       const t = convexTest(schema);
-      const { rateLimit } = defineRateLimits(components.theComponent, {
+      const { rateLimit } = defineRateLimits(components.ratelimiter, {
         simple: { kind, rate: 1, period: Second },
       });
       await expect(() =>
@@ -234,7 +234,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     test("inline config", async () => {
       const t = convexTest(schema);
       const { rateLimit, checkRateLimit, resetRateLimit } = defineRateLimits(
-        components.theComponent,
+        components.ratelimiter,
         {}
       );
 
@@ -266,22 +266,22 @@ describe.each(["token bucket", "fixed window"] as const)(
       } as RateLimitConfig;
       await t.run(async (ctx) => {
         const before = await ctx.runMutation(
-          components.theComponent.public.rateLimit,
+          components.ratelimiter.public.rateLimit,
           { name: "simple", config }
         );
         expect(before.ok).toBe(true);
         expect(before.retryAfter).toBe(undefined);
         const after = await ctx.runQuery(
-          components.theComponent.public.checkRateLimit,
+          components.ratelimiter.public.checkRateLimit,
           { name: "simple", config }
         );
         expect(after.ok).toBe(false);
         expect(after.retryAfter).toBeGreaterThan(0);
-        await ctx.runMutation(components.theComponent.public.resetRateLimit, {
+        await ctx.runMutation(components.ratelimiter.public.resetRateLimit, {
           name: "simple",
         });
         const after2 = await ctx.runQuery(
-          components.theComponent.public.checkRateLimit,
+          components.ratelimiter.public.checkRateLimit,
           { name: "simple", config }
         );
         expect(after2.ok).toBe(true);

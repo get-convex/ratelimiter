@@ -3,12 +3,13 @@
   "private": true,
   "version": "0.0.0",
   "scripts": {
-    "dev": "convex dev --local",
+    "dev": "convex dev --live-component-sources",
     "logs": "convex logs",
     "lint": "tsc -p convex && eslint convex"
   },
-  "peerDependencies": {
-    "convex": "1.15.1-alpha.2"
+  "dependencies": {
+    "@convex-dev/ratelimiter": "file:..",
+    "convex": "^1.16.0-alpha.1"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^4.0.3",
