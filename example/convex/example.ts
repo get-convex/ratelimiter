@@ -7,8 +7,11 @@ import {
   HOUR,
   isRateLimitError,
   MINUTE,
+  RateLimitConfig,
   RateLimiter,
+  SECOND,
 } from "@convex-dev/ratelimiter";
+import { expect } from "vitest";
 
 const rateLimiter = new RateLimiter(components.ratelimiter, {
   // A per-user limit, allowing one every ~6 seconds.
@@ -70,5 +73,84 @@ export const check = internalMutation({
   args: { key: v.optional(v.string()) },
   handler: async (ctx, args) => {
     return rateLimiter.check(ctx, "sendMessage", { key: args.key });
+  },
+});
+
+export const throws = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const kind of ["token bucket", "fixed window"] as const) {
+      const { rateLimit } = defineRateLimits(components.ratelimiter, {
+        ["simple " + kind]: { kind, rate: 1, period: SECOND },
+      });
+      try {
+        await rateLimit(ctx, "simple");
+        await rateLimit(ctx, "simple", { throws: true });
+      } catch (e) {
+        expect(isRateLimitError(e)).toBe(true);
+      }
+    }
+  },
+});
+
+export const inlineConfig = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const kind of ["token bucket", "fixed window"] as const) {
+      const { rateLimit, checkRateLimit, resetRateLimit } = defineRateLimits(
+        components.ratelimiter,
+        {}
+      );
+
+      const config = {
+        kind,
+        rate: 1,
+        period: SECOND,
+      } as RateLimitConfig;
+      const before = await rateLimit(ctx, "simple " + kind, { config });
+      expect(before.ok).toBe(true);
+      expect(before.retryAfter).toBe(undefined);
+      const after = await checkRateLimit(ctx, "simple " + kind, { config });
+      expect(after.ok).toBe(false);
+      expect(after.retryAfter).toBeGreaterThan(0);
+      await resetRateLimit(ctx, "simple " + kind);
+      const after2 = await checkRateLimit(ctx, "simple " + kind, { config });
+      expect(after2.ok).toBe(true);
+      expect(after2.retryAfter).toBe(undefined);
+    }
+  },
+});
+
+export const inlineVanilla = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    for (const kind of ["token bucket", "fixed window"] as const) {
+      const config = {
+        kind,
+        rate: 1,
+        period: SECOND,
+      } as RateLimitConfig;
+      const before = await ctx.runMutation(
+        components.ratelimiter.public.rateLimit,
+        { name: "simple " + kind, config }
+      );
+      expect(before.ok).toBe(true);
+      expect(before.retryAfter).toBe(undefined);
+      const after = await ctx.runQuery(
+        components.ratelimiter.public.checkRateLimit,
+        { name: "simple " + kind, config }
+      );
+      expect(after.ok).toBe(false);
+      expect(after.retryAfter).toBeGreaterThan(0);
+      await ctx.runMutation(components.ratelimiter.public.resetRateLimit, {
+        name: "simple " + kind,
+      });
+      const after2 = await ctx.runQuery(
+        components.ratelimiter.public.checkRateLimit,
+        { name: "simple " + kind, config }
+      );
+      expect(after2.ok).toBe(true);
+      expect(after2.retryAfter).toBe(undefined);
+    }
   },
 });

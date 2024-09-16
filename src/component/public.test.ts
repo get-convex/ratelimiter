@@ -18,12 +18,135 @@ describe.each(["token bucket", "fixed window"] as const)(
       vi.useRealTimers();
     });
 
+    test("simple check", async () => {
+      const t = convexTest(schema);
+      const name = "simple";
+      const config = { kind, rate: 1, period: Second };
+      await t.run(async (ctx) => {
+        const before = await ctx.runQuery(api.public.checkRateLimit, {
+          name,
+          config,
+        });
+        expect(before.ok).toBe(true);
+        expect(before.retryAfter).toBe(undefined);
+        const actual = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+        });
+        expect(actual.ok).toBe(true);
+        expect(actual.retryAfter).toBe(undefined);
+        const after = await ctx.runQuery(api.public.checkRateLimit, {
+          name,
+          config,
+        });
+        expect(after.ok).toBe(false);
+        expect(after.retryAfter).toBeGreaterThan(0);
+      });
+    });
+
+    test("simple consume", async () => {
+      const t = convexTest(schema);
+      const name = "simple";
+      const config = { kind, rate: 1, period: Second };
+      const global = await t.run(
+        async (ctx) =>
+          await ctx.runMutation(api.public.rateLimit, {
+            name,
+            config,
+          })
+      );
+      expect(global.ok).toBe(true);
+      expect(global.retryAfter).toBe(undefined);
+      const after = await t.run(
+        async (ctx) =>
+          await ctx.runMutation(api.public.rateLimit, {
+            name,
+            config,
+          })
+      );
+      expect(after.ok).toBe(false);
+      expect(after.retryAfter).toBeGreaterThan(0);
+    });
+
+    test("consume too much", async () => {
+      const t = convexTest(schema);
+      await expect(() =>
+        t.run(async (ctx) => {
+          await ctx.runMutation(api.public.rateLimit, {
+            name: "simple",
+            count: 2,
+            config: {
+              kind: "fixed window",
+              rate: 1,
+              period: Second,
+            },
+          });
+        })
+      ).rejects.toThrow("Rate limit simple count 2 exceeds 1.");
+    });
+
+    test("keyed", async () => {
+      const t = convexTest(schema);
+      const name = "simple";
+      const config = { kind, rate: 1, period: Second };
+      const keyed = await t.run(
+        async (ctx) =>
+          await ctx.runMutation(api.public.rateLimit, {
+            name,
+            config,
+            key: "key",
+          })
+      );
+      expect(keyed.ok).toBe(true);
+      expect(keyed.retryAfter).toBe(undefined);
+      const keyed2 = await t.run(
+        async (ctx) =>
+          await ctx.runMutation(api.public.rateLimit, {
+            name,
+            config,
+            key: "key2",
+          })
+      );
+      expect(keyed2.ok).toBe(true);
+      expect(keyed2.retryAfter).toBe(undefined);
+    });
+
+    test("burst", async () => {
+      const t = convexTest(schema);
+      const name = "burst";
+      const config = { kind, rate: 1, period: Second, capacity: 3 };
+      await t.run(async (ctx) => {
+        const before = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          count: 3,
+        });
+        expect(before.ok).toBe(true);
+        expect(before.retryAfter).toBe(undefined);
+        const keyed = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          key: "foo",
+          count: 3,
+        });
+        expect(keyed.ok).toBe(true);
+        expect(keyed.retryAfter).toBe(undefined);
+        const no = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          key: "foo",
+        });
+        expect(no.ok).toBe(false);
+      });
+    });
+
     test("retryAfter is accurate", async () => {
       const t = convexTest(schema, modules);
+      const name = "simple";
       const config = { kind, rate: 10, period: Minute };
       const one = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
-          name: "simple",
+          name,
           count: 5,
           config,
         });
@@ -42,7 +165,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       }
       const two = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
-          name: "simple",
+          name,
           count: 6,
           config,
         });
@@ -61,7 +184,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       }
       const three = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
-          name: "simple",
+          name,
           count: 10,
           config,
         });
@@ -82,11 +205,11 @@ describe.each(["token bucket", "fixed window"] as const)(
 
     test("retryAfter for reserved is accurate", async () => {
       const t = convexTest(schema, modules);
+      const name = "simple";
       const config = { kind, rate: 10, period: Minute };
-      vi.useFakeTimers();
       const one = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
-          name: "simple",
+          name,
           count: 5,
           config,
         });
@@ -94,7 +217,7 @@ describe.each(["token bucket", "fixed window"] as const)(
         expect(result.retryAfter).toBe(undefined);
         return ctx.db
           .query("rateLimits")
-          .withIndex("name", (q) => q.eq("name", "simple"))
+          .withIndex("name", (q) => q.eq("name", name))
           .unique();
       });
       expect(one).toBeDefined();
@@ -106,7 +229,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       }
       const two = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
-          name: "simple",
+          name,
           config,
           count: 16,
           reserve: true,
@@ -119,7 +242,7 @@ describe.each(["token bucket", "fixed window"] as const)(
         }
         return ctx.db
           .query("rateLimits")
-          .withIndex("name", (q) => q.eq("name", "simple"))
+          .withIndex("name", (q) => q.eq("name", name))
           .unique();
       });
       expect(two).toBeDefined();
@@ -131,7 +254,7 @@ describe.each(["token bucket", "fixed window"] as const)(
       vi.setSystemTime(two!.ts + 30 * Second);
       const three = await t.run(async (ctx) => {
         const result = await ctx.runMutation(api.public.rateLimit, {
-          name: "simple",
+          name,
           config,
           count: 5,
           reserve: true,
@@ -144,7 +267,7 @@ describe.each(["token bucket", "fixed window"] as const)(
         }
         return ctx.db
           .query("rateLimits")
-          .withIndex("name", (q) => q.eq("name", "simple"))
+          .withIndex("name", (q) => q.eq("name", name))
           .unique();
       });
       expect(three).toBeDefined();
@@ -153,6 +276,131 @@ describe.each(["token bucket", "fixed window"] as const)(
       } else {
         expect(three!.value).toBe(-11);
       }
+    });
+
+    test("simple reset", async () => {
+      const t = convexTest(schema);
+      const name = "simple";
+      const config = { kind, rate: 1, period: Second };
+      await t.run(async (ctx) => {
+        const before = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+        });
+        expect(before.ok).toBe(true);
+        expect(before.retryAfter).toBe(undefined);
+        await ctx.runMutation(api.public.resetRateLimit, { name });
+        const after = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+        });
+        expect(after.ok).toBe(true);
+        expect(after.retryAfter).toBe(undefined);
+      });
+    });
+
+    test("keyed reset", async () => {
+      const t = convexTest(schema);
+      const name = "simple";
+      const key = "key";
+      const config = { kind, rate: 1, period: Second };
+      await t.run(async (ctx) => {
+        const before = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          key,
+        });
+        expect(before.ok).toBe(true);
+        expect(before.retryAfter).toBe(undefined);
+        await ctx.runMutation(api.public.resetRateLimit, { name, key });
+        const after = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          key,
+        });
+        expect(after.ok).toBe(true);
+        expect(after.retryAfter).toBe(undefined);
+      });
+    });
+
+    test("reserved without max", async () => {
+      const t = convexTest(schema);
+      const name = "reserved";
+      const config = { kind, rate: 1, period: Hour };
+      await t.run(async (ctx) => {
+        const before = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+        });
+        expect(before.ok).toBe(true);
+        expect(before.retryAfter).toBe(undefined);
+        const reserved = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          count: 100,
+          reserve: true,
+        });
+        expect(reserved.ok).toBe(true);
+        expect(reserved.retryAfter).toBeGreaterThan(0);
+        const noSimple = await ctx.runQuery(api.public.checkRateLimit, {
+          name,
+          config,
+        });
+        expect(noSimple.ok).toBe(false);
+        expect(noSimple.retryAfter).toBeGreaterThan(reserved.retryAfter!);
+      });
+    });
+
+    test("reserved with max", async () => {
+      const t = convexTest(schema);
+      const name = "reserved";
+      const config = {
+        kind,
+        rate: 1,
+        period: Hour,
+        maxReserved: 1,
+      };
+      await t.run(async (ctx) => {
+        const check = await ctx.runQuery(api.public.checkRateLimit, {
+          name,
+          config,
+          count: 2,
+          reserve: true,
+        });
+        expect(check.ok).toBe(true);
+        const reserved = await ctx.runMutation(api.public.rateLimit, {
+          name,
+          config,
+          count: 2,
+          reserve: true,
+        });
+        expect(reserved.ok).toBe(true);
+        expect(reserved.retryAfter).toBeGreaterThan(0);
+        const noSimple = await ctx.runQuery(api.public.checkRateLimit, {
+          name,
+          config,
+        });
+        expect(noSimple.ok).toBe(false);
+      });
+    });
+
+    test("consume too much reserved", async () => {
+      const t = convexTest(schema);
+      await expect(() =>
+        t.run(async (ctx) => {
+          await ctx.runMutation(api.public.rateLimit, {
+            name: "simple",
+            count: 4,
+            reserve: true,
+            config: {
+              kind: "fixed window",
+              rate: 1,
+              period: Second,
+              maxReserved: 2,
+            },
+          });
+        })
+      ).rejects.toThrow("Rate limit simple count 4 exceeds 3.");
     });
   }
 );
