@@ -8,19 +8,14 @@ import {
   isRateLimitError,
   MINUTE,
   RateLimitConfig,
-  RateLimiter,
   SECOND,
 } from "@convex-dev/ratelimiter";
 import { expect } from "vitest";
 
-const rateLimiter = new RateLimiter(components.ratelimiter, {
+const { rateLimit, checkRateLimit } = defineRateLimits(components.ratelimiter, {
   // A per-user limit, allowing one every ~6 seconds.
   // Allows up to 3 in quick succession if they haven't sent many recently.
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
-});
-
-// alternative syntax
-const { rateLimit: _ } = defineRateLimits(components.ratelimiter, {
   // One global / singleton rate limit
   freeTrialSignUp: { kind: "fixed window", rate: 100, period: HOUR },
 });
@@ -38,26 +33,26 @@ function assert<T extends string | boolean | object | undefined | null>(
 export const test = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const first = await rateLimiter.limit(ctx, "sendMessage", {
+    const first = await rateLimit(ctx, "sendMessage", {
       key: "user1",
       throws: true,
     });
     assert(first.ok);
     assert(!first.retryAfter);
-    const second = await rateLimiter.limit(ctx, "sendMessage", {
+    const second = await rateLimit(ctx, "sendMessage", {
       key: "user1",
     });
     assert(second.ok);
     assert(!second.retryAfter);
     // third
-    await rateLimiter.limit(ctx, "sendMessage", {
+    await rateLimit(ctx, "sendMessage", {
       key: "user1",
       throws: true,
     });
     let threw = false;
     // fourth should throw
     try {
-      await rateLimiter.limit(ctx, "sendMessage", {
+      await rateLimit(ctx, "sendMessage", {
         key: "user1",
         throws: true,
       });
@@ -72,7 +67,7 @@ export const test = internalMutation({
 export const check = internalMutation({
   args: { key: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return rateLimiter.check(ctx, "sendMessage", { key: args.key });
+    return checkRateLimit(ctx, "sendMessage", { key: args.key });
   },
 });
 
