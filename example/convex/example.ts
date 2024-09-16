@@ -10,7 +10,6 @@ import {
   RateLimitConfig,
   SECOND,
 } from "@convex-dev/ratelimiter";
-import { expect } from "vitest";
 
 const { rateLimit, checkRateLimit } = defineRateLimits(components.ratelimiter, {
   // A per-user limit, allowing one every ~6 seconds.
@@ -82,7 +81,7 @@ export const throws = internalMutation({
         await rateLimit(ctx, "simple");
         await rateLimit(ctx, "simple", { throws: true });
       } catch (e) {
-        expect(isRateLimitError(e)).toBe(true);
+        assert(isRateLimitError(e));
       }
     }
   },
@@ -103,15 +102,15 @@ export const inlineConfig = internalMutation({
         period: SECOND,
       } as RateLimitConfig;
       const before = await rateLimit(ctx, "simple " + kind, { config });
-      expect(before.ok).toBe(true);
-      expect(before.retryAfter).toBe(undefined);
+      assert(before.ok);
+      assert(before.retryAfter === undefined);
       const after = await checkRateLimit(ctx, "simple " + kind, { config });
-      expect(after.ok).toBe(false);
-      expect(after.retryAfter).toBeGreaterThan(0);
+      assert(!after.ok);
+      assert(after.retryAfter! > 0);
       await resetRateLimit(ctx, "simple " + kind);
       const after2 = await checkRateLimit(ctx, "simple " + kind, { config });
-      expect(after2.ok).toBe(true);
-      expect(after2.retryAfter).toBe(undefined);
+      assert(after2.ok);
+      assert(after2.retryAfter === undefined);
     }
   },
 });
@@ -129,14 +128,14 @@ export const inlineVanilla = internalMutation({
         components.ratelimiter.public.rateLimit,
         { name: "simple " + kind, config }
       );
-      expect(before.ok).toBe(true);
-      expect(before.retryAfter).toBe(undefined);
+      assert(before.ok);
+      assert(before.retryAfter === undefined);
       const after = await ctx.runQuery(
         components.ratelimiter.public.checkRateLimit,
         { name: "simple " + kind, config }
       );
-      expect(after.ok).toBe(false);
-      expect(after.retryAfter).toBeGreaterThan(0);
+      assert(!after.ok);
+      assert(after.retryAfter! > 0);
       await ctx.runMutation(components.ratelimiter.public.resetRateLimit, {
         name: "simple " + kind,
       });
@@ -144,8 +143,8 @@ export const inlineVanilla = internalMutation({
         components.ratelimiter.public.checkRateLimit,
         { name: "simple " + kind, config }
       );
-      expect(after2.ok).toBe(true);
-      expect(after2.retryAfter).toBe(undefined);
+      assert(after2.ok);
+      assert(after2.retryAfter === undefined);
     }
   },
 });
