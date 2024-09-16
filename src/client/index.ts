@@ -54,7 +54,7 @@ export function isRateLimitError(
  *   Imported like `import { components } from "./_generated/server.js";`
  * @param limits The rate limits to define. The key is the name of the rate limit.
  * See {@link RateLimitConfig} for more information.
- * @returns { rateLimit, checkRateLimit, resetRateLimit } The rate limit functions.
+ * @returns `{ rateLimit, checkRateLimit, resetRateLimit }` The rate limit functions.
  * They will be typed based on the limits you provide, so the names will
  * auto-complete, and the config is inferred by name if it was defined here.
  */
