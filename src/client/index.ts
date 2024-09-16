@@ -58,112 +58,104 @@ export function isRateLimitError(
  * They will be typed based on the limits you provide, so the names will
  * auto-complete, and the config is inferred by name if it was defined here.
  */
-export default function defineRateLimits<
+export function defineRateLimits<
   Limits extends Record<string, RateLimitConfig>,
 >(ratelimiter: RateLimiterApi, limits: Limits) {
-  return {
-    // type RateLimitNames = keyof Limits & string;
-    /**
-     * Check a rate limit.
-     * This function will check the rate limit and return whether the request is
-     * allowed, and if not, when it could be retried.
-     * Unlike {@link rateLimit}, this function does not consume any tokens.
-     *
-     * @param ctx The ctx object from a query or mutation, including runQuery.
-     * @param name The name of the rate limit.
-     * @param args.key The key to use for the rate limit. If not provided, the rate
-     * limit is a single shared value.
-     * @param args.count The number of tokens to consume. Defaults to 1.
-     * @param args.reserve Whether to reserve the tokens ahead of time. Defaults to
-     * false.
-     * @param args.throws Whether to throw an error if the rate limit is exceeded.
-     * By default, {@link rateLimit} will just return { ok: false, retryAfter: number }
-     * @param arsg.config The inline configuration for the rate limit, if not
-     * specified in the {@link defineRateLimits} definition.
-     * See {@link RateLimitArgs} for more information.
-     * @returns { ok, retryAfter }: `ok` is true if the rate limit is not exceeded.
-     * `retryAfter` is the time in milliseconds when retrying could succeed.
-     * If `reserve` is true, `retryAfter` is the time you must schedule the
-     * work to be done.
-     */
-    async checkRateLimit<Name extends string = keyof Limits & string>(
-      { runQuery }: RunQueryCtx,
-      name: Name,
-      args?: RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>
-    ): Promise<RateLimitReturns> {
-      const config = (args && "config" in args && args.config) || limits[name];
-      if (!config) {
-        throw new Error(`Rate limit ${name} not defined.`);
-      }
-      return runQuery(ratelimiter.public.checkRateLimit, {
-        ...args,
-        name,
-        config,
-      });
-    },
+  // type RateLimitNames = keyof Limits & string;
+  /**
+   * Check a rate limit.
+   * This function will check the rate limit and return whether the request is
+   * allowed, and if not, when it could be retried.
+   * Unlike {@link rateLimit}, this function does not consume any tokens.
+   *
+   * @param ctx The ctx object from a query or mutation, including runQuery.
+   * @param name The name of the rate limit.
+   * @param options The rate limit arguments. `config` is required if the rate
+   * limit was not defined in {@link defineRateLimits}. See {@link RateLimitArgs}.
+   * @returns `{ ok, retryAfter }`: `ok` is true if the rate limit is not exceeded.
+   * `retryAfter` is the time in milliseconds when retrying could succeed.
+   * If `reserve` is true, `retryAfter` is the time you must schedule the
+   * work to be done.
+   */
+  async function checkRateLimit<Name extends string = keyof Limits & string>(
+    { runQuery }: RunQueryCtx,
+    name: Name,
+    ...options: Name extends keyof Limits & string
+      ? [RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>?]
+      : [RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>]
+  ): Promise<RateLimitReturns> {
+    const args = options[0];
+    const config = (args && "config" in args && args.config) || limits[name];
+    if (!config) {
+      throw new Error(`Rate limit ${name} not defined.`);
+    }
+    return runQuery(ratelimiter.public.checkRateLimit, {
+      ...args,
+      name,
+      config,
+    });
+  }
 
-    /**
-     * Rate limit a request.
-     * This function will check the rate limit and return whether the request is
-     * allowed, and if not, when it could be retried.
-     *
-     * @param ctx The ctx object from a mutation, including runMutation.
-     * @param name The name of the rate limit.
-     * @param args.key The key to use for the rate limit. If not provided, the rate
-     * limit is a single shared value.
-     * @param args.count The number of tokens to consume. Defaults to 1.
-     * @param args.reserve Whether to reserve the tokens ahead of time. Defaults to
-     * false.
-     * @param args.throws Whether to throw an error if the rate limit is exceeded.
-     * By default, {@link rateLimit} will just return { ok: false, retryAfter: number }
-     * @param args.config If the name wasn't given to {@link defineRateLimits},
-     * this is required as the configuration for the rate limit.
-     * See {@link RateLimitArgs} for more information.
-     * @returns { ok, retryAfter }: `ok` is true if the rate limit is not exceeded.
-     * `retryAfter` is the duration in milliseconds when retrying could succeed.
-     * If `reserve` is true, `retryAfter` is the duration you must schedule the
-     * work to be done after, e.g. `ctx.runAfter(retryAfter, ...`).
-     */
-    async rateLimit<Name extends string = keyof Limits & string>(
-      { runMutation }: RunMutationCtx,
-      name: Name,
-      ...argsArray:
-        | [RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>]
-        | (Name extends keyof Limits ? [] : never)
-    ): Promise<RateLimitReturns> {
-      const args = argsArray[0];
-      const config = (args && "config" in args && args.config) || limits[name];
-      if (!config) {
-        throw new Error(`Rate limit ${name} not defined.`);
-      }
-      return runMutation(ratelimiter.public.rateLimit, {
-        ...args,
-        name,
-        config,
-      });
-    },
-    /**
-     * Reset a rate limit. This will remove the rate limit from the database.
-     * The next request will start fresh.
-     * Note: In the case of a fixed window without a specified `start`,
-     * the new window will be a random time.
-     * @param ctx The ctx object from a mutation, including runMutation.
-     * @param name The name of the rate limit to reset, including all shards.
-     * @param key If a key is provided, it will reset the rate limit for that key.
-     * If not, it will reset the rate limit for the shared value.
-     */
-    async resetRateLimit<Name extends string = keyof Limits & string>(
-      { runMutation }: RunMutationCtx,
-      name: Name,
-      args?: { key?: string }
-    ): Promise<void> {
-      return runMutation(ratelimiter.public.resetRateLimit, {
-        ...(args ?? null),
-        name,
-      });
-    },
+  /**
+   * Rate limit a request.
+   * This function will check the rate limit and return whether the request is
+   * allowed, and if not, when it could be retried.
+   *
+   * @param ctx The ctx object from a mutation, including runMutation.
+   * @param name The name of the rate limit.
+   * @param options The rate limit arguments. `config` is required if the rate
+   * limit was not defined in {@link defineRateLimits}. See {@link RateLimitArgs}.
+   * @returns `{ ok, retryAfter }`: `ok` is true if the rate limit is not exceeded.
+   * `retryAfter` is the duration in milliseconds when retrying could succeed.
+   * If `reserve` is true, `retryAfter` is the duration you must schedule the
+   * work to be done after, e.g. `ctx.runAfter(retryAfter, ...`).
+   */
+  async function rateLimit<Name extends string = keyof Limits & string>(
+    { runMutation }: RunMutationCtx,
+    name: Name,
+    ...options: Name extends keyof Limits & string
+      ? [RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>?]
+      : [RateLimitArgsWithKnownNameOrInlinedConfig<Limits, Name>]
+  ): Promise<RateLimitReturns> {
+    const args = options[0];
+    const config = (args && "config" in args && args.config) || limits[name];
+    if (!config) {
+      throw new Error(`Rate limit ${name} not defined.`);
+    }
+    return runMutation(ratelimiter.public.rateLimit, {
+      ...args,
+      name,
+      config,
+    });
+  }
+  /**
+   * Reset a rate limit. This will remove the rate limit from the database.
+   * The next request will start fresh.
+   * Note: In the case of a fixed window without a specified `start`,
+   * the new window will be a random time.
+   * @param ctx The ctx object from a mutation, including runMutation.
+   * @param name The name of the rate limit to reset, including all shards.
+   * @param key If a key is provided, it will reset the rate limit for that key.
+   * If not, it will reset the rate limit for the shared value.
+   */
+  async function resetRateLimit<Name extends string = keyof Limits & string>(
+    { runMutation }: RunMutationCtx,
+    name: Name,
+    args?: { key?: string }
+  ): Promise<void> {
+    await runMutation(ratelimiter.public.resetRateLimit, {
+      ...(args ?? null),
+      name,
+    });
+  }
+  return {
+    checkRateLimit,
+    rateLimit,
+    resetRateLimit,
   };
 }
+
+export default defineRateLimits;
 
 type RunQueryCtx = {
   runQuery: GenericQueryCtx<GenericDataModel>["runQuery"];
@@ -175,12 +167,19 @@ type RateLimitArgsWithKnownNameOrInlinedConfig<
   Limits extends Record<string, RateLimitConfig>,
   Name extends string,
 > = Expand<
-  Omit<RateLimitArgs, "config" | "name"> &
-    (Name extends keyof Limits ? object : { config: RateLimitConfig })
+  Omit<RateLimitArgs, "name" | "config"> &
+    (Name extends keyof Limits
+      ? object
+      : {
+          /**  The rate limit configuration, if specified inline.
+           * If you use {@link defineRateLimits} to define the named rate limit, you don't
+           * specify the config inline.}
+           */
+          config: RateLimitConfig;
+        })
 >;
 
-// While iterating you can use this type utility.
-import { api } from "../component/_generated/api.js"; // the component's public api
+import type { api } from "../component/_generated/api.js"; // the component's public api
 type UseApi<API> = Expand<{
   [K in keyof API]: API[K] extends FunctionReference<
     infer T,
@@ -192,4 +191,5 @@ type UseApi<API> = Expand<{
     ? FunctionReference<T, "internal", A, R, P>
     : UseApi<API[K]>;
 }>;
+// TODO: before publishing, change this from typeof api to Mounts
 type RateLimiterApi = UseApi<typeof api>;

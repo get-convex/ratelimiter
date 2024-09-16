@@ -74,12 +74,11 @@ export const throws = internalMutation({
   args: {},
   handler: async (ctx) => {
     for (const kind of ["token bucket", "fixed window"] as const) {
-      const { rateLimit } = defineRateLimits(components.ratelimiter, {
-        ["simple " + kind]: { kind, rate: 1, period: SECOND },
-      });
+      const config = { kind, rate: 1, period: SECOND };
+      const { rateLimit } = defineRateLimits(components.ratelimiter, {});
       try {
-        await rateLimit(ctx, "simple");
-        await rateLimit(ctx, "simple", { throws: true });
+        await rateLimit(ctx, kind + " throws", { config });
+        await rateLimit(ctx, kind + " throws", { config, throws: true });
       } catch (e) {
         assert(isRateLimitError(e));
       }

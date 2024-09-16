@@ -1,4 +1,4 @@
-import { Infer, ObjectType, v } from "convex/values";
+import { Infer, v } from "convex/values";
 
 /**
  * A token bucket limits the rate of requests by continuously adding tokens to
@@ -66,7 +66,23 @@ export const rateLimitArgs = {
   config: v.union(tokenBucketValidator, fixedWindowValidator),
 };
 
-export type RateLimitArgs = ObjectType<typeof rateLimitArgs>;
+export type RateLimitArgs = {
+  /** The name of the rate limit. */
+  name: string;
+  /** The key to use for the rate limit. If not provided, the rate limit
+   * is a single shared value.  */
+  key?: string;
+  /**  The number of tokens to consume. Defaults to 1. */
+  count?: number;
+  /**  Whether to reserve the tokens ahead of time. Defaults to false. */
+  reserve?: boolean;
+  /**  Whether to throw an error if the rate limit is exceeded.
+   * By default, check/consume will just return { ok: false, retryAfter: number }.
+   */
+  throws?: boolean;
+  /** The rate limit configuration. See {@link RateLimitConfig}. */
+  config: RateLimitConfig;
+};
 
 export const rateLimitReturns = v.union(
   v.object({
