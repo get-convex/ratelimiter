@@ -13,8 +13,10 @@ export const rateLimit = mutation({
   args: rateLimitArgs,
   returns: rateLimitReturns,
   handler: async (ctx, args) => {
-    const { status, shard } = await checkRateLimitSharded(ctx.db, args);
-    const existing = await getShard(ctx.db, args.name, args.key, shard);
+    const { status, shard, existing } = await checkRateLimitSharded(
+      ctx.db,
+      args
+    );
     if (status.ok) {
       const { ts, value } = status;
       if (existing) {
@@ -67,14 +69,14 @@ async function checkRateLimitSharded(db: DatabaseReader, args: RateLimitArgs) {
   const result2 = checkRateLimitInternal(existing2, args);
   if (!result1.ok) {
     if (!result2.ok && result1.retryAfter < result2.retryAfter) {
-      return { status: result1, shard: shard1 };
+      return { status: result1, shard: shard1, existing: existing1 };
     }
-    return { status: result2, shard: shard2 };
+    return { status: result2, shard: shard2, existing: existing2 };
   }
   if (!result2.ok || result1.value < result2.value) {
-    return { status: result1, shard: shard1 };
+    return { status: result1, shard: shard1, existing: existing1 };
   }
-  return { status: result2, shard: shard2 };
+  return { status: result2, shard: shard2, existing: existing2 };
 }
 
 function formatReturn(
