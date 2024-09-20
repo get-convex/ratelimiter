@@ -2,6 +2,7 @@
   "name": "@convex-dev/ratelimiter",
   "version": "0.0.0",
   "type": "module",
+  "license": "Apache-2.0",
   "scripts": {
     "build": "npm run build:esm && npm run build:cjs",
     "build:esm": "tsc --project ./esm.json && echo '{\\n  \"type\": \"module\"\\n}' > dist/esm/package.json",
