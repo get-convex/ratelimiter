@@ -13,6 +13,30 @@ Application-level rate limiting.
 - Deterministic
 - Fails closed, not open
 
+```ts
+// Restrict how fast free users can sign up to deter bots
+const status = await rateLimiter.limit(ctx, "freeTrialSignUp");
+
+// Limit how fast a user can send messages
+const status = await rateLimiter.limit(ctx, "sendMessage", { key: userId });
+
+// Consume multiple in one request to prevent rate limits on an LLM API.
+const status = await rateLimiter.limit(ctx, "llmTokens", { count: tokens });
+
+// Automatically throw an error if the rate limit is hit
+await rateLimiter.limit(ctx, "failedLogins", { key: userId, throws: true });
+
+// Reserve future capacity instead of just failing now
+if (!args.skipCheck) {
+  const status = await rateLimiter.limit(ctx, "llmRequests", { reserve: true });
+  if (status.retryAfter) {
+    return ctx.scheduler.runAfter(status.retryAfter, internal.foo.bar, {
+      skipCheck: true,
+    });
+  }
+}
+```
+
 See [this article](https://stack.convex.dev/rate-limiting) for more information.
 
 ### Convex App
