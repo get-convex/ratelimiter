@@ -5,26 +5,37 @@
 Application-level rate limiting.
 
 - Type-safe
-- Configurable for fixed window or token bucket
+- Configurable for fixed window or token bucket algorithms
+- Efficient storage and compute
 - Configurable sharding for scalability
-- Transactional
-- Fairness guarantees via "reservation"
+- Transactional evaluation
+- Fairness guarantees via credit "reservation"
 - Opt-in "rollover" or "burst" allowance via "token bucket" config
-- Deterministic
 - Fails closed, not open
 
 ```ts
+const rateLimiter = new RateLimiter(components.ratelimiter, {
+  // One global / singleton rate limit, using a "fixed window" algorithm.
+  freeTrialSignUp: { kind: "fixed window", rate: 100, period: HOUR },
+  // A per-user limit, allowing one every ~6 seconds.
+  // Allows up to 3 in quick succession if they haven't sent many recently.
+  sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
+  failedLogins: { kind: "token bucket", rate: 10, period: HOUR },
+  // Use sharding to increase throughput without compromising on correctness.
+  llmTokens: { kind: "token bucket", rate: 40000, period: MINUTE, shards: 100 },
+  llmRequests: { kind: "fixed window", rate: 3, period: MINUTE },
+});
 // Restrict how fast free users can sign up to deter bots
 const status = await rateLimiter.limit(ctx, "freeTrialSignUp");
 
 // Limit how fast a user can send messages
 const status = await rateLimiter.limit(ctx, "sendMessage", { key: userId });
 
-// Consume multiple in one request to prevent rate limits on an LLM API.
-const status = await rateLimiter.limit(ctx, "llmTokens", { count: tokens });
-
 // Automatically throw an error if the rate limit is hit
 await rateLimiter.limit(ctx, "failedLogins", { key: userId, throws: true });
+
+// Consume multiple in one request to prevent rate limits on an LLM API.
+const status = await rateLimiter.limit(ctx, "llmTokens", { count: tokens });
 
 // Reserve future capacity instead of just failing now
 if (!args.skipCheck) {
@@ -35,6 +46,16 @@ if (!args.skipCheck) {
     });
   }
 }
+
+// Check a rate limit without consuming it
+const status = await rateLimiter.check(ctx, "failedLogins", { key: userId });
+
+// Reset a rate limit on successful login
+await rateLimiter.reset(ctx, "failedLogins", { key: userId });
+
+// Use a one-off rate limit config (when not named on initialization)
+const config = { kind: "fixed window", rate: 1, period: SECOND };
+await rateLimiter.limit(ctx, "oneOffName", { config, throws: true });
 ```
 
 See [this article](https://stack.convex.dev/rate-limiting) for more information.
@@ -56,7 +77,7 @@ Create a `convex.config.ts` file in your app's `convex/` folder and install the 
 ```ts
 // convex/convex.config.js
 import { defineApp } from "convex/server";
-import ratelimiter from "@convex-dev/ratelimiter/convex.config.js";
+import ratelimiter from "@convex-dev/ratelimiter/convex.config";
 
 const app = defineApp();
 app.use(ratelimiter);
@@ -78,6 +99,9 @@ const rateLimiter = new RateLimiter(components.ratelimiter, {
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
 });
 ```
+
+- You can safely generate multiple instances if you want to define different
+  rates in separate places.
 
 Use it from a mutation or action:
 
