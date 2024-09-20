@@ -4,7 +4,7 @@ import { internalMutation } from "./_generated/server";
 import { components } from "./_generated/api";
 
 import {
-  defineRateLimits,
+  RateLimiter,
   HOUR,
   isRateLimitError,
   MINUTE,
@@ -12,7 +12,7 @@ import {
   SECOND,
 } from "@convex-dev/ratelimiter";
 
-const { rateLimit, checkRateLimit } = defineRateLimits(components.ratelimiter, {
+const rateLimiter = new RateLimiter(components.ratelimiter, {
   // A per-user limit, allowing one every ~6 seconds.
   // Allows up to 3 in quick succession if they haven't sent many recently.
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
@@ -33,26 +33,26 @@ function assert<T extends string | boolean | object | undefined | null>(
 export const test = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const first = await rateLimit(ctx, "sendMessage", {
+    const first = await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
       throws: true,
     });
     assert(first.ok);
     assert(!first.retryAfter);
-    const second = await rateLimit(ctx, "sendMessage", {
+    const second = await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
     });
     assert(second.ok);
     assert(!second.retryAfter);
     // third
-    await rateLimit(ctx, "sendMessage", {
+    await rateLimiter.limit(ctx, "sendMessage", {
       key: "user1",
       throws: true,
     });
     let threw = false;
     // fourth should throw
     try {
-      await rateLimit(ctx, "sendMessage", {
+      await rateLimiter.limit(ctx, "sendMessage", {
         key: "user1",
         throws: true,
       });
@@ -67,7 +67,7 @@ export const test = internalMutation({
 export const check = internalMutation({
   args: { key: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    return checkRateLimit(ctx, "sendMessage", { key: args.key });
+    return rateLimiter.check(ctx, "sendMessage", { key: args.key });
   },
 });
 
@@ -76,10 +76,13 @@ export const throws = internalMutation({
   handler: async (ctx) => {
     for (const kind of ["token bucket", "fixed window"] as const) {
       const config = { kind, rate: 1, period: SECOND };
-      const { rateLimit } = defineRateLimits(components.ratelimiter, {});
+      const rateLimiter = new RateLimiter(components.ratelimiter);
       try {
-        await rateLimit(ctx, kind + " throws", { config });
-        await rateLimit(ctx, kind + " throws", { config, throws: true });
+        await rateLimiter.limit(ctx, kind + " throws", { config });
+        await rateLimiter.limit(ctx, kind + " throws", {
+          config,
+          throws: true,
+        });
       } catch (e) {
         assert(isRateLimitError(e));
       }
@@ -91,24 +94,21 @@ export const inlineConfig = internalMutation({
   args: {},
   handler: async (ctx) => {
     for (const kind of ["token bucket", "fixed window"] as const) {
-      const { rateLimit, checkRateLimit, resetRateLimit } = defineRateLimits(
-        components.ratelimiter,
-        {}
-      );
+      const rateLimiter = new RateLimiter(components.ratelimiter);
 
       const config = {
         kind,
         rate: 1,
         period: SECOND,
       } as RateLimitConfig;
-      const before = await rateLimit(ctx, "simple " + kind, { config });
+      const before = await rateLimiter.limit(ctx, "simple " + kind, { config });
       assert(before.ok);
       assert(before.retryAfter === undefined);
-      const after = await checkRateLimit(ctx, "simple " + kind, { config });
+      const after = await rateLimiter.check(ctx, "simple " + kind, { config });
       assert(!after.ok);
       assert(after.retryAfter! > 0);
-      await resetRateLimit(ctx, "simple " + kind);
-      const after2 = await checkRateLimit(ctx, "simple " + kind, { config });
+      await rateLimiter.reset(ctx, "simple " + kind);
+      const after2 = await rateLimiter.check(ctx, "simple " + kind, { config });
       assert(after2.ok);
       assert(after2.retryAfter === undefined);
     }
