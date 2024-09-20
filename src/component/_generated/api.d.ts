@@ -94,7 +94,7 @@ export type Mounts = {
       "mutation",
       "public",
       { key?: string; name: string },
-      any
+      null
     >;
   };
 };
@@ -111,5 +111,7 @@ export declare const internal: FilterApi<
   typeof fullApiWithMounts,
   FunctionReference<any, "internal">
 >;
+
+export declare const components: {};
 
 /* prettier-ignore-end */
