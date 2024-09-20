@@ -63,7 +63,8 @@ async function checkRateLimitSharded(db: DatabaseReader, args: RateLimitArgs) {
   const shard1 = Math.floor(Math.random() * shards);
   const existing1 = await getShard(db, name, args.key, shard1);
   const result1 = checkRateLimitInternal(existing1, args);
-  if (!existing1 || shards < 3) return { status: result1, shard: shard1 };
+  if (!existing1 || shards < 3)
+    return { status: result1, shard: shard1, existing: existing1 };
   // Find another shard to check
   const shard2 = (shard1 + Math.floor(Math.random() * (shards - 1))) % shards;
   const existing2 = await getShard(db, name, args.key, shard2);
