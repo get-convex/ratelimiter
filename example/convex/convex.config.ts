@@ -1,7 +1,7 @@
 import { defineApp } from "convex/server";
-import component from "@convex-dev/ratelimiter/convex.config.js";
+import ratelimiter from "@convex-dev/ratelimiter/convex.config.js";
 
 const app = defineApp();
-app.use(component, { name: "ratelimiter" });
+app.use(ratelimiter);
 
 export default app;
