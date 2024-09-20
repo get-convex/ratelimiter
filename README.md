@@ -43,10 +43,10 @@ export default app;
 Define your rate limits:
 
 ```ts
-import { RateLimiter } from "@convex-dev/twilio";
-import { components } from "./_generated/server.js";
+import { RateLimiter } from "@convex-dev/ratelimiter";
+import { components } from "./_generated/api.js";
 
-const { rateLimit } = defineRateLimits(components.ratelimiter, {
+const rateLimiter = new RateLimiter(components.ratelimiter, {
   // One global / singleton rate limit
   freeTrialSignUp: { kind: "fixed window", rate: 100, period: HOUR },
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
@@ -56,30 +56,19 @@ const { rateLimit } = defineRateLimits(components.ratelimiter, {
 Use it from a mutation or action:
 
 ```ts
-const { ok, retryAfter } = await rateLimit(ctx, "freeTrialSignUp");
+const { ok, retryAfter } = await rateLimiter.limit(ctx, "freeTrialSignUp");
 ```
 
 Or if you want to rate limit based on a key:
 
 ```ts
-await rateLimit(ctx, "sendMessage", { key: user._id, throws: true });
+await rateLimiter.limit(ctx, "sendMessage", { key: user._id, throws: true });
 ```
 
 This call also throws an exception, so you don't have to check the return value.
 
 See [this article](https://stack.convex.dev/rate-limiting) for more information
 on usage and advanced patterns.
-
-## Maintainers / Developers
-
-Run the example:
-
-```ts
-npm i
-cd example
-npm i
-npm run dev
-```
 
 # 🧑‍🏫 What is Convex?
 
