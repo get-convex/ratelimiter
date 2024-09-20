@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@convex-dev/ratelimiter": "file:..",
-    "convex": "^1.16.0-alpha.1"
+    "convex": "file:../node_modules/convex"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^4.0.3",
