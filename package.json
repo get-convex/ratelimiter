@@ -38,7 +38,7 @@
     }
   },
   "dependencies": {
-    "convex": "^1.16.0-alpha.1"
+    "convex": "^1.16.1"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^4.0.3",

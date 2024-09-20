@@ -45,6 +45,7 @@ export const resetRateLimit = mutation({
     name: v.string(),
     key: v.optional(v.string()),
   },
+  returns: v.null(),
   handler: async (ctx, args) => {
     const allShards = await ctx.db
       .query("rateLimits")

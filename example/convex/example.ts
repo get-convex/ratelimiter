@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 
-import { internalMutation, components } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
+import { components } from "./_generated/api";
 
 import {
   defineRateLimits,
