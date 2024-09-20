@@ -1,8 +1,18 @@
 {
   "name": "@convex-dev/ratelimiter",
-  "version": "0.0.1",
-  "type": "module",
+  "repository": "github:get-convex/ratelimiter",
+  "homepage": "https://github.com/get-convex/ratelimiter#readme",
+  "bugs": {
+    "email": "support@convex.dev",
+    "url": "https://github.com/get-convex/ratelimiter/issues"
+  },
+  "version": "0.1.0",
   "license": "Apache-2.0",
+  "keywords": [
+    "convex",
+    "component"
+  ],
+  "type": "module",
   "scripts": {
     "build": "npm run build:esm && npm run build:cjs",
     "build:esm": "tsc --project ./esm.json && echo '{\\n  \"type\": \"module\"\\n}' > dist/esm/package.json",
@@ -29,7 +39,7 @@
         "default": "./dist/commonjs/client/index.js"
       }
     },
-    "./convex.config.js": {
+    "./convex.config": {
       "import": {
         "@convex-dev/component-source": "./src/component/convex.config.ts",
         "types": "./dist/esm/component/convex.config.d.ts",

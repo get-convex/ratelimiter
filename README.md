@@ -1,5 +1,7 @@
 # Convex Rate Limiter Component
 
+[![npm version](https://badge.fury.io/js/@convex-dev%2Fratelimiter.svg)](https://badge.fury.io/js/@convex-dev%2Fratelimiter)
+
 Application-level rate limiting.
 
 - Type-safe
