@@ -2,6 +2,8 @@
 
 [![npm version](https://badge.fury.io/js/@convex-dev%2Fratelimiter.svg)](https://badge.fury.io/js/@convex-dev%2Fratelimiter)
 
+**Note: Convex Components are currently in beta**
+
 Application-level rate limiting.
 
 - Type-safe
