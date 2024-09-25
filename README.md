@@ -77,7 +77,7 @@ npm install @convex-dev/ratelimiter
 Create a `convex.config.ts` file in your app's `convex/` folder and install the component by calling `use`:
 
 ```ts
-// convex/convex.config.js
+// convex/convex.config.ts
 import { defineApp } from "convex/server";
 import ratelimiter from "@convex-dev/ratelimiter/convex.config";
 
@@ -93,7 +93,7 @@ Define your rate limits:
 
 ```ts
 import { RateLimiter } from "@convex-dev/ratelimiter";
-import { components } from "./_generated/api.js";
+import { components } from "./_generated/api";
 
 const rateLimiter = new RateLimiter(components.ratelimiter, {
   // One global / singleton rate limit

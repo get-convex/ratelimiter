@@ -19,7 +19,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("simple check", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "simple";
       const config = { kind, rate: 1, period: Second };
       await t.run(async (ctx) => {
@@ -45,7 +45,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("simple consume", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "simple";
       const config = { kind, rate: 1, period: Second };
       const global = await t.run(
@@ -69,7 +69,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("consume too much", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       await expect(() =>
         t.run(async (ctx) => {
           await ctx.runMutation(api.public.rateLimit, {
@@ -86,7 +86,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("keyed", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "simple";
       const config = { kind, rate: 1, period: Second };
       const keyed = await t.run(
@@ -112,7 +112,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("burst", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "burst";
       const config = { kind, rate: 1, period: Second, capacity: 3 };
       await t.run(async (ctx) => {
@@ -279,7 +279,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("simple reset", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "simple";
       const config = { kind, rate: 1, period: Second };
       await t.run(async (ctx) => {
@@ -300,7 +300,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("keyed reset", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "simple";
       const key = "key";
       const config = { kind, rate: 1, period: Second };
@@ -324,7 +324,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("reserved without max", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "reserved";
       const config = { kind, rate: 1, period: Hour };
       await t.run(async (ctx) => {
@@ -352,7 +352,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("reserved with max", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       const name = "reserved";
       const config = {
         kind,
@@ -385,7 +385,7 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
 
     test("consume too much reserved", async () => {
-      const t = convexTest(schema);
+      const t = convexTest(schema, modules);
       await expect(() =>
         t.run(async (ctx) => {
           await ctx.runMutation(api.public.rateLimit, {
