@@ -4,6 +4,8 @@
 
 **Note: Convex Components are currently in beta**
 
+<!-- START: Include on website. -->
+
 Application-level rate limiting.
 
 - Type-safe
@@ -121,6 +123,8 @@ This call also throws an exception, so you don't have to check the return value.
 
 See [this article](https://stack.convex.dev/rate-limiting) for more information
 on usage and advanced patterns.
+
+<!-- END: Include on website. -->
 
 # 🧑‍🏫 What is Convex?
 
