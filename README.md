@@ -121,6 +121,8 @@ await rateLimiter.limit(ctx, "sendMessage", { key: user._id, throws: true });
 
 This call also throws an exception, so you don't have to check the return value.
 
+[Check out a full example here](./example/convex/example.ts).
+
 See [this article](https://stack.convex.dev/rate-limiting) for more information
 on usage and advanced patterns.
 
