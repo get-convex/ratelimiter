@@ -1,22 +1,22 @@
 import { ConvexError } from "convex/values";
-import { DatabaseReader } from "./_generated/server.js";
 import {
-  RateLimitReturns,
   RateLimitArgs,
   RateLimitConfig,
   RateLimitError,
+  RateLimitReturns,
 } from "../shared.js";
 import { Doc } from "./_generated/dataModel.js";
+import { DatabaseReader } from "./_generated/server.js";
 
 // If there are only two shards, it's not really worth checking them both
 // since it'd introduce a read dependency on all shards anyways.
-const MIN_CHOOSE_TWO = 3;
+export const MIN_CHOOSE_TWO = 3;
 
 export async function checkRateLimitOrThrow(
   db: DatabaseReader,
   args: RateLimitArgs
 ) {
-  const result = await _checkRateLimitSharded(db, args);
+  const result = await checkRateLimitSharded(db, args);
   if (!result.status.ok && args.throws) {
     throw new ConvexError({
       kind: "RateLimited",
@@ -27,7 +27,7 @@ export async function checkRateLimitOrThrow(
   return result;
 }
 
-export async function _checkRateLimitSharded(
+async function checkRateLimitSharded(
   db: DatabaseReader,
   args: RateLimitArgs
 ): Promise<{
@@ -53,7 +53,7 @@ export async function _checkRateLimitSharded(
   const two = await checkShard(
     db,
     shardArgs,
-    (one.shard + Math.floor(Math.random() * (shards - 1))) % shards
+    (one.shard + 1 + Math.floor(Math.random() * (shards - 1))) % shards
   );
   if (one.status.ok && !two.status.ok) {
     return returnSingle(one);
@@ -96,6 +96,7 @@ export async function _checkRateLimitSharded(
       updates: [],
     };
   }
+  // Rare / impossible for one to be ok and another not - maybe float rounding?
   const ok = oneShared.status.ok && twoShared.status.ok;
   const updates = ok
     ? [
@@ -127,6 +128,9 @@ export async function _checkRateLimitSharded(
 // Sanity check that this could ever be satisfied
 function validateRequest(args: RateLimitArgs) {
   const shards = args.config.shards ?? 1;
+  if (shards <= 0) {
+    throw new Error("Shards must be a positive number");
+  }
   const shardFactor = shards < MIN_CHOOSE_TWO ? 1 : shards / 2;
   const max = (args.config.capacity ?? args.config.rate) / shardFactor;
   const count = args.count ?? 1;
@@ -135,15 +139,15 @@ function validateRequest(args: RateLimitArgs) {
       const maxReserved = args.config.maxReserved / shardFactor;
       if (count > max + maxReserved) {
         throw new Error(
-          `Rate limit ${args.name} count ${count} exceeds ${max + maxReserved}` +
-            (shards > 1 ? ` for ${shards} shards.` : ".")
+          `Rate limit ${args.name} count ${count} exceeds ${(max + maxReserved).toFixed(2)}` +
+            (shards > 1 ? ` per ${shards} shards.` : ".")
         );
       }
     }
   } else if (count > max) {
     throw new Error(
       `Rate limit ${args.name} count ${count} exceeds ${max}` +
-        (shards > 1 ? ` for ${shards} shards.` : ".")
+        (shards > 1 ? ` per ${shards} shards.` : ".")
     );
   }
 }
