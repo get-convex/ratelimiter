@@ -110,7 +110,7 @@ function checkRateLimitInternal(
   const shards = args.config.shards || 1;
   const { config, name } = args;
   const max = (config.capacity ?? config.rate) / shards;
-  const maxReserved = (config.maxReserved ?? 0) / shards;
+  const maxReserved = (config.maxReserved ?? Infinity) / shards;
   const consuming = args.count ?? 1;
   if (args.reserve) {
     if (consuming > max + maxReserved) {

@@ -58,7 +58,7 @@ export const test = internalMutation({
       });
     } catch (e) {
       threw = true;
-      console.error(isRateLimitError(e));
+      assert(isRateLimitError(e));
     }
     assert(threw);
   },
