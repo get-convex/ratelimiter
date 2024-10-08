@@ -1,22 +1,14 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server.js";
-import {
-  rateLimitArgs,
-  RateLimitReturns,
-  rateLimitReturns,
-} from "../shared.js";
+import { rateLimitArgs, rateLimitReturns } from "../shared.js";
 import { checkRateLimitOrThrow } from "./internal.js";
 
 export const rateLimit = mutation({
   args: rateLimitArgs,
   returns: rateLimitReturns,
   handler: async (ctx, args) => {
-    const { status, shard, existing } = await checkRateLimitOrThrow(
-      ctx.db,
-      args
-    );
-    if (status.ok) {
-      const { ts, value } = status;
+    const { status, updates } = await checkRateLimitOrThrow(ctx.db, args);
+    for (const { value, ts, existing, shard } of updates) {
       if (existing) {
         await ctx.db.patch(existing._id, { ts, value });
       } else {
@@ -25,7 +17,7 @@ export const rateLimit = mutation({
         await ctx.db.insert("rateLimits", { name, key, ts, value, shard });
       }
     }
-    return formatReturn(status);
+    return status;
   },
 });
 
@@ -34,7 +26,7 @@ export const checkRateLimit = query({
   returns: rateLimitReturns,
   handler: async (ctx, args) => {
     const { status } = await checkRateLimitOrThrow(ctx.db, args);
-    return formatReturn(status);
+    return status;
   },
 });
 
@@ -54,10 +46,3 @@ export const resetRateLimit = mutation({
     }
   },
 });
-
-function formatReturn(
-  status: Awaited<ReturnType<typeof checkRateLimitOrThrow>>["status"]
-): RateLimitReturns {
-  const { ts: _ts, value: _v, ...returns } = status;
-  return returns;
-}

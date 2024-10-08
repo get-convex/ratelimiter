@@ -1,7 +1,6 @@
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import schema from "./schema.js";
-import { api } from "./_generated/api.js";
 import { modules } from "./setup.test.js";
 import { checkRateLimit, rateLimit, resetRateLimit } from "./public.js";
 
