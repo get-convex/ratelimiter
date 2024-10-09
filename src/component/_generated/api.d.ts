@@ -10,6 +10,7 @@
  * @module
  */
 
+import type * as internal_ from "../internal.js";
 import type * as public from "../public.js";
 
 import type {
@@ -26,6 +27,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  internal: typeof internal_;
   public: typeof public;
 }>;
 export type Mounts = {
