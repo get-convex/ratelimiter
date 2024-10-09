@@ -1,16 +1,14 @@
-import { v } from "convex/values";
-
-import { internalMutation } from "./_generated/server";
-import { components } from "./_generated/api";
-
 import {
-  RateLimiter,
   HOUR,
   isRateLimitError,
   MINUTE,
   RateLimitConfig,
+  RateLimiter,
   SECOND,
 } from "@convex-dev/ratelimiter";
+import { v } from "convex/values";
+import { components } from "./_generated/api";
+import { internalMutation, internalQuery } from "./_generated/server";
 
 const rateLimiter = new RateLimiter(components.ratelimiter, {
   // A per-user limit, allowing one every ~6 seconds.
@@ -19,16 +17,6 @@ const rateLimiter = new RateLimiter(components.ratelimiter, {
   // One global / singleton rate limit
   freeTrialSignUp: { kind: "fixed window", rate: 100, period: HOUR },
 });
-
-function assert<T extends string | boolean | object | undefined | null>(
-  condition: T,
-  message?: string
-): condition is Exclude<T, false | undefined | null | ""> {
-  if (!condition) {
-    throw new Error(message);
-  }
-  return true;
-}
 
 export const test = internalMutation({
   args: {},
@@ -64,7 +52,7 @@ export const test = internalMutation({
   },
 });
 
-export const check = internalMutation({
+export const check = internalQuery({
   args: { key: v.optional(v.string()) },
   handler: async (ctx, args) => {
     return rateLimiter.check(ctx, "sendMessage", { key: args.key });
@@ -148,3 +136,13 @@ export const inlineVanilla = internalMutation({
     }
   },
 });
+
+function assert<T extends string | boolean | object | undefined | null>(
+  condition: T,
+  message?: string
+): condition is Exclude<T, false | undefined | null | ""> {
+  if (!condition) {
+    throw new Error(message);
+  }
+  return true;
+}
