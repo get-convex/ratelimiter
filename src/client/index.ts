@@ -38,10 +38,10 @@ export function isRateLimitError(
  * Define rate limits for a set of named rate limits.
  * e.g.
  * ```ts
- * import { RateLimiter } from "@convex-dev/ratelimiter";
+ * import { RateLimiter } from "@convex-dev/rate-limiter";
  * import { components } from "./_generated/api.js";
  *
- * const rateLimiter = new RateLimiter(components.ratelimiter, {
+ * const rateLimiter = new RateLimiter(components.rateLimiter, {
  *   // A per-user limit, allowing one every ~6 seconds.
  *   // Allows up to 3 in quick succession if they haven't sent many recently.
  *   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
@@ -52,7 +52,7 @@ export function isRateLimitError(
  *   await rateLimiter.limit(ctx, "sendMessage", { key: ctx.userId });
  * ```
  *
- * @param component The ratelimiter component. Like `components.ratelimiter`.
+ * @param component The rate limiter component. Like `components.rateLimiter`.
  *   Imported like `import { components } from "./_generated/api.js";`
  * @param limits The rate limits to define. The key is the name of the rate limit.
  * See {@link RateLimitConfig} for more information.

@@ -5,12 +5,12 @@ import {
   RateLimitConfig,
   RateLimiter,
   SECOND,
-} from "@convex-dev/ratelimiter";
+} from "@convex-dev/rate-limiter";
 import { v } from "convex/values";
 import { components } from "./_generated/api";
 import { internalMutation, internalQuery } from "./_generated/server";
 
-const rateLimiter = new RateLimiter(components.ratelimiter, {
+const rateLimiter = new RateLimiter(components.rateLimiter, {
   // A per-user limit, allowing one every ~6 seconds.
   // Allows up to 3 in quick succession if they haven't sent many recently.
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
@@ -64,7 +64,7 @@ export const throws = internalMutation({
   handler: async (ctx) => {
     for (const kind of ["token bucket", "fixed window"] as const) {
       const config = { kind, rate: 1, period: SECOND };
-      const rateLimiter = new RateLimiter(components.ratelimiter);
+      const rateLimiter = new RateLimiter(components.rateLimiter);
       try {
         await rateLimiter.limit(ctx, kind + " throws", { config });
         await rateLimiter.limit(ctx, kind + " throws", {
@@ -82,7 +82,7 @@ export const inlineConfig = internalMutation({
   args: {},
   handler: async (ctx) => {
     for (const kind of ["token bucket", "fixed window"] as const) {
-      const rateLimiter = new RateLimiter(components.ratelimiter);
+      const rateLimiter = new RateLimiter(components.rateLimiter);
 
       const config = {
         kind,
@@ -113,22 +113,22 @@ export const inlineVanilla = internalMutation({
         period: SECOND,
       } as RateLimitConfig;
       const before = await ctx.runMutation(
-        components.ratelimiter.public.rateLimit,
+        components.rateLimiter.public.rateLimit,
         { name: "simple " + kind, config }
       );
       assert(before.ok);
       assert(before.retryAfter === undefined);
       const after = await ctx.runQuery(
-        components.ratelimiter.public.checkRateLimit,
+        components.rateLimiter.public.checkRateLimit,
         { name: "simple " + kind, config }
       );
       assert(!after.ok);
       assert(after.retryAfter! > 0);
-      await ctx.runMutation(components.ratelimiter.public.resetRateLimit, {
+      await ctx.runMutation(components.rateLimiter.public.resetRateLimit, {
         name: "simple " + kind,
       });
       const after2 = await ctx.runQuery(
-        components.ratelimiter.public.checkRateLimit,
+        components.rateLimiter.public.checkRateLimit,
         { name: "simple " + kind, config }
       );
       assert(after2.ok);

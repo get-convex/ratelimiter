@@ -8,7 +8,7 @@
     "lint": "tsc -p convex && eslint convex"
   },
   "dependencies": {
-    "@convex-dev/ratelimiter": "file:..",
+    "@convex-dev/rate-limiter": "file:..",
     "convex": "file:../node_modules/convex"
   },
   "devDependencies": {

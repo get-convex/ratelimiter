@@ -1,11 +1,11 @@
 {
-  "name": "@convex-dev/ratelimiter",
+  "name": "@convex-dev/rate-limiter",
   "description": "A rate limiter component for Convex. Define and use application-layer rate limits. Type-safe, transactional, fair, safe, and configurable sharding to scale.",
-  "repository": "github:get-convex/ratelimiter",
-  "homepage": "https://github.com/get-convex/ratelimiter#readme",
+  "repository": "github:get-convex/rate-limiter",
+  "homepage": "https://github.com/get-convex/rate-limiter#readme",
   "bugs": {
     "email": "support@convex.dev",
-    "url": "https://github.com/get-convex/ratelimiter/issues"
+    "url": "https://github.com/get-convex/rate-limiter/issues"
   },
   "version": "0.1.7",
   "license": "Apache-2.0",
