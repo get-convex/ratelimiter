@@ -40,8 +40,8 @@ async function checkRateLimitSharded(
   }[];
 }> {
   validateRequest(args);
-  const shards = args.config.shards || 1;
-  const config = shardConfig(args.config, args.config.shards);
+  const shards = Math.round(args.config.shards || 1);
+  const config = shardConfig(args.config, shards);
   const shardArgs = { ...args, config };
   const one = await checkShard(
     db,
@@ -182,8 +182,8 @@ async function getShard(
     .unique();
 }
 
-function shardConfig(config: RateLimitConfig, shards: number | undefined) {
-  if (!shards || shards === 1) return config;
+function shardConfig(config: RateLimitConfig, shards: number) {
+  if (shards === 1) return config;
   const sharded = { ...config };
   sharded.rate /= shards;
   if (sharded.capacity) {
