@@ -241,6 +241,7 @@ const myAction = internalAction({
       // Reserve future capacity instead of just failing now
       const status = await rateLimiter.limit(ctx, "llmRequests", {
         reserve: true,
+        throws: true,
       });
       if (status.retryAfter) {
         return ctx.scheduler.runAfter(
