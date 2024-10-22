@@ -49,7 +49,7 @@ export function isRateLimitError(
  *   freeTrialSignUp: { kind: "fixed window", rate: 100, period: HOUR },
  * });
  * //... elsewhere
- *   await rateLimiter.limit(ctx, "sendMessage", { key: ctx.userId });
+ * await rateLimiter.limit(ctx, "sendMessage", { key: ctx.userId, throws: true });
  * ```
  *
  * @param component The rate limiter component. Like `components.rateLimiter`.
@@ -78,9 +78,16 @@ export class RateLimiter<
    * @param options The rate limit arguments. `config` is required if the rate
    * limit was not defined in {@link RateLimiter}. See {@link RateLimitArgs}.
    * @returns `{ ok, retryAfter }`: `ok` is true if the rate limit is not exceeded.
-   * `retryAfter` is the time in milliseconds when retrying could succeed.
-   * If `reserve` is true, `retryAfter` is the time you must schedule the
-   * work to be done.
+   * `retryAfter` is the duration in milliseconds when retrying could succeed.
+   * If `reserve` is true, `ok` is true if there's enough capacity including
+   * reservation. If there is a maxiumum reservation limit, `ok` will be false
+   * when it is exceeded. When `ok` is true and `retryAfter` is defined, it is
+   * the duration you must wait before executing the work.
+   * e.g.:
+   * ```ts
+   * if (status.retryAfter) {
+   *   await ctx.scheduler.runAfter(retryAfter, ...)
+   * ```
    */
   async check<Name extends string = keyof Limits & string>(
     ctx: RunQueryCtx,
@@ -107,8 +114,15 @@ export class RateLimiter<
    * limit was not defined in {@link RateLimiter}. See {@link RateLimitArgs}.
    * @returns `{ ok, retryAfter }`: `ok` is true if the rate limit is not exceeded.
    * `retryAfter` is the duration in milliseconds when retrying could succeed.
-   * If `reserve` is true, `retryAfter` is the duration you must schedule the
-   * work to be done after, e.g. `ctx.runAfter(retryAfter, ...`).
+   * If `reserve` is true, `ok` is true if there's enough capacity including
+   * reservation. If there is a maxiumum reservation limit, `ok` will be false
+   * when it is exceeded. When `ok` is true and `retryAfter` is defined, it is
+   * the duration you must wait before executing the work.
+   * e.g.:
+   * ```ts
+   * if (status.retryAfter) {
+   *   await ctx.scheduler.runAfter(retryAfter, ...)
+   * ```
    */
   async limit<Name extends string = keyof Limits & string>(
     ctx: RunMutationCtx,
