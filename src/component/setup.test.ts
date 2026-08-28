@@ -5,8 +5,10 @@ import { convexTest } from "convex-test";
 import schema from "./schema.js";
 import batchWorker from "@convex-dev/batch-worker/test";
 
-export function initConvexTest() {
-  const t = convexTest(schema, modules);
+export function initConvexTest(options?: {
+  transactionLimits?: { bytesRead?: number } | boolean;
+}) {
+  const t = convexTest({ schema, modules, ...options });
   batchWorker.register(t, "batchWorker");
   return t;
 }

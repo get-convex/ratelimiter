@@ -63,6 +63,43 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         null,
         Name
       >;
+      enqueueUpdates: FunctionReference<
+        "mutation",
+        "internal",
+        {
+          updates: Array<
+            | {
+                config:
+                  | {
+                      capacity?: number;
+                      kind: "token bucket";
+                      maxReserved?: number;
+                      period: number;
+                      rate: number;
+                      shards?: number;
+                      start?: null;
+                    }
+                  | {
+                      capacity?: number;
+                      kind: "fixed window";
+                      maxReserved?: number;
+                      period: number;
+                      rate: number;
+                      shards?: number;
+                      start?: number;
+                    };
+                count: number;
+                key?: string;
+                kind: "consume";
+                name: string;
+                ts: number;
+              }
+            | { key?: string; kind: "reset"; name: string }
+          >;
+        },
+        null,
+        Name
+      >;
       getServerTime: FunctionReference<
         "mutation",
         "internal",
