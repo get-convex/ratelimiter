@@ -9,6 +9,7 @@
  */
 
 import type * as example from "../example.js";
+import type * as lazyBenchmark from "../lazyBenchmark.js";
 import type * as loadTest from "../loadTest.js";
 import type * as playground from "../playground.js";
 
@@ -20,6 +21,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   example: typeof example;
+  lazyBenchmark: typeof lazyBenchmark;
   loadTest: typeof loadTest;
   playground: typeof playground;
 }>;
