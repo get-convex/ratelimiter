@@ -45,7 +45,7 @@ rare), but will serve most real-world use cases.
 - Type-safe usage: you won't accidentally misspell a rate limit name.
 - Configurable for fixed window or token bucket algorithms.
 - Efficient storage and compute: storage is not proportional to requests.
-- Configurable sharding for scalability.
+- Configurable `lazy` limits that are applied in the background for scalability.
 - Transactional evaluation: all rate limit changes will roll back if your
   mutation fails.
 - Fairness guarantees via credit "reservation": save yourself from exponential
@@ -101,6 +101,8 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   // Allows up to 3 in quick succession if they haven't sent many recently.
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
   failedLogins: { kind: "token bucket", rate: 10, period: HOUR },
+  // Use `lazy` limits for eventual consistency so callers never conflict.
+  llmTokenBudget: { kind: "token bucket", rate: 10, period: HOUR, lazy: true },
   // Use sharding to increase throughput without compromising on correctness.
   llmTokens: { kind: "token bucket", rate: 40000, period: MINUTE, shards: 10 },
   llmRequests: { kind: "fixed window", rate: 1000, period: MINUTE, shards: 10 },
@@ -256,7 +258,7 @@ const { config, value, ts } = calculateRateLimit(
 );
 ```
 
-### Scaling rate limiting with shards
+### Avoidng contention using lazy rate limits
 
 When many requests are happening at once, they can all be trying to modify the
 same values in the database. Because Convex provides strong transactions, they
@@ -267,7 +269,36 @@ contention for these values, it causes
 Convex automatically retries these a number of times with backoff, but it's
 still best to avoid them.
 
-Not to worry! To provide high throughput, we can use a technique called
+When a limit is experiencing high contention, you can mark the limit `lazy` to
+improve throughput.
+
+```ts
+const rateLimiter = new RateLimiter(components.rateLimiter, {
+  llmTokens: { kind: "token bucket", rate: 40000, period: MINUTE, lazy: true },
+});
+
+// ... in a mutation or action, exactly as before:
+const status = await rateLimiter.limit(ctx, "llmTokens", { count: tokens });
+```
+
+Rate limit consumption will be placed in a queue and applied in the background
+by a [Batch Worker](https://github.com/get-convex/batch-worker). Reading a lazy
+limit inside a mutation reads from a stale database snapshot, so lazy rate limit
+calls will never conflict with concurrent writers.
+
+The trade-off is that lazy limits are **eventually** consistent. A large burst
+of concurrent callers can all succeed before the worker applies enough
+consumption to block new callers, causing the limit to go negative. Note that
+this does not mean the limit "fails open"; since callers will need to wait for
+the limit to recover past the negative value, the extra consumption is accounted
+for over time.
+
+If enforcing an exact instantaneous cap is required for your use case, consider
+using [`shards`](#scaling-rate-limiting-with-shards).
+
+### Scaling rate limiting with shards
+
+Another option to provide high throughput is to use a technique called
 "sharding" where we break up the total capacity into individual buckets, or
 "shards". When we go to use some of that capacity, we check a random
 shard.<sup>[1](#power-of-two)</sup> While sometimes we'll get unlucky and get
