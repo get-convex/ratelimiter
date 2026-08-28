@@ -30,6 +30,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         {
           config:
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "token bucket";
                 maxReserved?: number;
@@ -39,6 +40,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 start?: null;
               }
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "fixed window";
                 maxReserved?: number;
@@ -71,6 +73,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 config:
                   | {
+                      applyUpdates?: "transactionally" | "asynchronously";
                       capacity?: number;
                       kind: "token bucket";
                       maxReserved?: number;
@@ -80,6 +83,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                       start?: null;
                     }
                   | {
+                      applyUpdates?: "transactionally" | "asynchronously";
                       capacity?: number;
                       kind: "fixed window";
                       maxReserved?: number;
@@ -113,6 +117,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         {
           config:
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "token bucket";
                 maxReserved?: number;
@@ -122,6 +127,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 start?: null;
               }
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "fixed window";
                 maxReserved?: number;
@@ -137,6 +143,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         {
           config:
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "token bucket";
                 maxReserved?: number;
@@ -146,6 +153,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 start?: null;
               }
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "fixed window";
                 maxReserved?: number;
@@ -166,6 +174,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
         {
           config:
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "token bucket";
                 maxReserved?: number;
@@ -175,6 +184,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                 start?: null;
               }
             | {
+                applyUpdates?: "transactionally" | "asynchronously";
                 capacity?: number;
                 kind: "fixed window";
                 maxReserved?: number;

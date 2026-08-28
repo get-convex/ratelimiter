@@ -400,3 +400,51 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
   },
 );
+
+describe("asynchronous configs", () => {
+  const config = {
+    kind: "token bucket",
+    rate: 1,
+    period: Hour,
+    applyUpdates: "asynchronously",
+  } as const;
+
+  test("can't be applied by rateLimit", async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(api.lib.rateLimit, { name: "async", config }),
+    ).rejects.toThrow(
+      'Rate limit config for async has `applyUpdates: "asynchronously"`',
+    );
+  });
+
+  test("can't be queued when updates are applied transactionally", async () => {
+    const t = convexTest(schema, modules);
+    const update = {
+      kind: "consume" as const,
+      name: "eager",
+      count: 1,
+      config: { ...config, applyUpdates: "transactionally" as const },
+      ts: Date.now(),
+    };
+    await expect(
+      t.mutation(api.lib.enqueueUpdates, { updates: [update] }),
+    ).rejects.toThrow(
+      'Rate limit config for eager has `applyUpdates: "transactionally"`',
+    );
+  });
+
+  test("are readable, since the async path checks through the same query", async () => {
+    const t = convexTest(schema, modules);
+    expect(
+      await t.query(api.lib.checkRateLimit, { name: "async", config }),
+    ).toEqual({ ok: true, retryAfter: undefined });
+    const { value, config: applied } = await t.query(api.lib.getValue, {
+      name: "async",
+      config,
+    });
+    expect(value).toBe(1);
+    // Collapsed onto the singleton shard the worker writes.
+    expect(applied.shards).toBe(1);
+  });
+});

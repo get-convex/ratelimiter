@@ -21,6 +21,11 @@ export const rateLimit = mutation({
   args: rateLimitArgs,
   returns: rateLimitReturns,
   handler: async (ctx, args) => {
+    if (args.config.applyUpdates === "asynchronously") {
+      throw new Error(
+        `Rate limit config for ${args.name} has \`applyUpdates: "asynchronously"\`. Limit consumption must be enqueued.`,
+      );
+    }
     const { status, updates } = await checkRateLimitOrThrow(ctx.db, args);
     for (const { value, ts, existing, shard } of updates) {
       if (existing) {
@@ -107,6 +112,16 @@ export const enqueueUpdates = mutation({
   args: { updates: v.array(vPendingUpdate) },
   returns: v.null(),
   handler: async (ctx, { updates }) => {
+    for (const update of updates) {
+      if (
+        update.kind === "consume" &&
+        update.config.applyUpdates === "transactionally"
+      ) {
+        throw new Error(
+          `Rate limit config for ${update.name} has \`applyUpdates: "transactionally"\` and can't be enqueued.`,
+        );
+      }
+    }
     await Promise.all(
       updates.map((update) =>
         ctx.db.insert("pendingUpdates", {
