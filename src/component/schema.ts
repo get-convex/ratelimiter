@@ -1,5 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { vPendingUpdate } from "../shared.js";
 
 export default defineSchema({
   rateLimits: defineTable({
@@ -9,4 +10,9 @@ export default defineSchema({
     value: v.number(), // can go negative if capacity is reserved ahead of time
     ts: v.number(),
   }).index("name", ["name", "key", "shard"]),
+
+  pendingUpdates: defineTable({
+    update: vPendingUpdate,
+    updatedAt: v.commitTs(),
+  }).index("updatedAt", ["updatedAt"]),
 });
