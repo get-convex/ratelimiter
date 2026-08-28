@@ -130,6 +130,27 @@ export const getValueReturns = v.object({
 
 export type GetValueReturns = Infer<typeof getValueReturns>;
 
+/** Lazy rate limits are never sharded: every update lands on this shard. */
+export const SINGLETON_SHARD = 0;
+
+export const vPendingUpdate = v.union(
+  v.object({
+    kind: v.literal("consume"),
+    name: v.string(),
+    key: v.optional(v.string()),
+    count: v.number(),
+    config: configValidator,
+    ts: v.number(),
+  }),
+  v.object({
+    kind: v.literal("reset"),
+    name: v.string(),
+    key: v.optional(v.string()),
+  }),
+);
+
+export type PendingUpdate = Infer<typeof vPendingUpdate>;
+
 /**
  * Calculate rate limit values based on the current state and configuration.
  * This function is exported so it can be used in both client and server code.
