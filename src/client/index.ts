@@ -355,18 +355,15 @@ type WithKnownNameOrInlinedConfig<
   Limits extends Record<string, RateLimitConfig>,
   Name extends string,
   Args,
-> = Expand<
-  Omit<Args, "name" | "config"> &
-    (Name extends keyof Limits
-      ? object
-      : {
-          /**  The rate limit configuration, if specified inline.
-           * If you use {@link RateLimits} to define the named rate limit, you don't
-           * specify the config inline.}
-           */
-          config: RateLimitConfig;
-        })
->;
+> = Name extends keyof Limits
+  ? Expand<Omit<Args, "name" | "config">>
+  : Expand<Omit<Args, "name" | "config">> & {
+      /**  The rate limit configuration, if specified inline.
+       * If you use {@link RateLimits} to define the named rate limit, you don't
+       * specify the config inline.}
+       */
+      config: RateLimitConfig;
+    };
 
 type HookOpts<DataModel extends GenericDataModel> = {
   key?:

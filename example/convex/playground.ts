@@ -18,8 +18,14 @@ export const consumeRateLimit = mutation({
     reserve: v.boolean(),
   },
   handler: async (ctx, args) => {
+    // The validators allow `lazy` and `shards` together, but the
+    // RateLimitConfig type doesn't, so split them apart here.
+    const { lazy, shards, ...rest } = args.config;
+    const config = lazy
+      ? { ...rest, lazy: true as const }
+      : { ...rest, shards };
     return rateLimiter.limit(ctx, "demo", {
-      config: args.config,
+      config,
       count: args.count,
       reserve: args.reserve,
     });

@@ -38,6 +38,26 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   },
 });
 
+new RateLimiter(components.rateLimiter, {
+  // @ts-expect-error a lazy limit can't be sharded
+  bad: { kind: "token bucket", rate: 10, period: HOUR, lazy: true, shards: 4 },
+});
+
+export const badInline = mutationGeneric({
+  args: {},
+  handler: async (ctx) =>
+    rateLimiter.limit(ctx, "badInline", {
+      // @ts-expect-error a lazy limit can't be sharded
+      config: {
+        kind: "token bucket",
+        rate: 1,
+        period: HOUR,
+        lazy: true,
+        shards: 2,
+      },
+    }),
+});
+
 const LIMITS = ["strict", "lazy"] as const;
 type LimitName = (typeof LIMITS)[number];
 const vLimit = v.union(...LIMITS.map((name) => v.literal(name)));

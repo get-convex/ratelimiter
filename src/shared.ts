@@ -45,13 +45,42 @@ export const configValidator = v.union(
 );
 
 /**
- * One of the supported rate limits.
+ * One of the supported rate limits, with `lazy` and `shards` made mutually
+ * exclusive: sharding exists to reduce write contention, which lazy rate
+ * limits already avoid.
  * See {@link tokenBucketValidator} and {@link fixedWindowValidator} for more
  * information.
  */
 export type RateLimitConfig =
-  | Infer<typeof tokenBucketValidator>
-  | Infer<typeof fixedWindowValidator>;
+  | LazyOrSharded<TokenBucketConfig>
+  | LazyOrSharded<FixedWindowConfig>;
+
+/**
+ * Makes `lazy` and `shards` mutually exclusive on a config type, as a flat
+ * union of intersections so that TypeScript's discriminated-union
+ * assignability on `kind` keeps working.
+ */
+type LazyOrSharded<T> =
+  | (T & { shards?: number; lazy?: false })
+  | (T & { lazy?: true; shards?: never });
+
+type TokenBucketConfig = {
+  kind: "token bucket";
+  rate: number;
+  period: number;
+  capacity?: number;
+  maxReserved?: number;
+  start?: null;
+};
+
+type FixedWindowConfig = {
+  kind: "fixed window";
+  rate: number;
+  period: number;
+  capacity?: number;
+  maxReserved?: number;
+  start?: number;
+};
 
 /**
  * Arguments for rate limiting.
@@ -91,7 +120,7 @@ export type RateLimitArgs = {
    */
   throws?: boolean;
   /** The rate limit configuration. See {@link RateLimitConfig}. */
-  config: RateLimitConfig;
+  config: Infer<typeof configValidator>;
 };
 
 export const rateLimitReturns = v.union(
@@ -159,7 +188,7 @@ export type PendingUpdate = Infer<typeof vPendingUpdate>;
  */
 export function calculateRateLimit(
   existing: { value: number; ts: number } | null,
-  config: RateLimitConfig,
+  config: Infer<typeof configValidator>,
   now: number = Date.now(),
   count: number = 0,
 ) {

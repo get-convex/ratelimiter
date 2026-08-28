@@ -1,5 +1,21 @@
+import type { Infer } from "convex/values";
 import { describe, expect, test } from "vitest";
+import type { configValidator, RateLimitConfig } from "./shared.js";
 import { calculateRateLimit } from "./shared.js";
+
+type Assert<T extends true> = T;
+
+// Keep RateLimitConfig in sync with the validators: every config must be
+// accepted by configValidator, and every validator field must appear on the
+// config types.
+type _ConfigMatchesValidator = Assert<
+  RateLimitConfig extends Infer<typeof configValidator> ? true : false
+>;
+type _ConfigHasAllValidatorFields = Assert<
+  keyof Infer<typeof configValidator> extends keyof RateLimitConfig
+    ? true
+    : false
+>;
 
 const Second = 1_000;
 const Minute = 60 * Second;
