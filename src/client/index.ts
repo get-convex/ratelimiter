@@ -1,5 +1,8 @@
 import {
   type Expand,
+  type FunctionArgs,
+  type FunctionReference,
+  type FunctionReturnType,
   type GenericActionCtx,
   type GenericDataModel,
   type GenericMutationCtx,
@@ -102,11 +105,11 @@ export class RateLimiter<
       ? [WithKnownNameOrInlinedConfig<Limits, Name, RateLimitArgs>?]
       : [WithKnownNameOrInlinedConfig<Limits, Name, RateLimitArgs>]
   ): Promise<RateLimitReturns> {
-    return ctx.runQuery(this.component.lib.checkRateLimit, {
-      ...options[0],
-      name,
-      config: this.getConfig(options[0], name),
-    });
+    const config = this.getConfig(options[0], name);
+    const args = { ...options[0], name, config };
+    return config.lazy
+      ? runStaleQuery(ctx, this.component.lib.checkRateLimit, args)
+      : ctx.runQuery(this.component.lib.checkRateLimit, args);
   }
 
   /**
@@ -137,12 +140,37 @@ export class RateLimiter<
       ? [WithKnownNameOrInlinedConfig<Limits, Name, RateLimitArgs>?]
       : [WithKnownNameOrInlinedConfig<Limits, Name, RateLimitArgs>]
   ): Promise<RateLimitReturns> {
-    return ctx.runMutation(this.component.lib.rateLimit, {
-      ...options[0],
-      name,
-      config: this.getConfig(options[0], name),
+    const config = this.getConfig(options[0], name);
+    if (!config.lazy) {
+      return ctx.runMutation(this.component.lib.rateLimit, {
+        ...options[0],
+        name,
+        config,
+      });
+    }
+    const args = { ...options[0], name, config };
+    const status = await runStaleQuery(
+      ctx,
+      this.component.lib.checkRateLimit,
+      args,
+    );
+    if (!status.ok) return status;
+    const { key, count } = args as RateLimitArgs;
+    await ctx.runMutation(this.component.lib.enqueueUpdates, {
+      updates: [
+        {
+          kind: "consume",
+          name,
+          key,
+          count: count ?? 1,
+          config,
+          ts: Date.now(),
+        },
+      ],
     });
+    return status;
   }
+
   /**
    * Reset a rate limit. This will remove the rate limit from the database.
    * The next request will start fresh.
@@ -150,18 +178,25 @@ export class RateLimiter<
    * the new window will be a random time.
    * @param ctx The ctx object from a mutation, including runMutation.
    * @param name The name of the rate limit to reset, including all shards.
-   * @param key If a key is provided, it will reset the rate limit for that key.
-   * If not, it will reset the rate limit for the shared value.
+   * @param options The rate limit arguments. If a key is provided, it will
+   * reset the rate limit for that key. If not, it will reset the rate limit
+   * for the shared value. `config` is required if the rate limit was not
+   * defined in {@link RateLimiter}. See {@link RateLimitArgs}.
    */
   async reset<Name extends string = keyof Limits & string>(
     { runMutation }: MutationCtx | ActionCtx,
     name: Name,
-    args?: { key?: string },
+    args?: { key?: string; config?: RateLimitConfig },
   ): Promise<void> {
-    await runMutation(this.component.lib.resetRateLimit, {
-      ...(args ?? null),
-      name,
-    });
+    const config = args?.config ?? this.limits?.[name];
+    const resetArgs = { key: args?.key, name };
+    if (config?.lazy) {
+      await runMutation(this.component.lib.enqueueUpdates, {
+        updates: [{ kind: "reset", ...resetArgs }],
+      });
+    } else {
+      await runMutation(this.component.lib.resetRateLimit, resetArgs);
+    }
   }
 
   /**
@@ -183,28 +218,22 @@ export class RateLimiter<
           WithKnownNameOrInlinedConfig<
             Limits,
             Name,
-            {
-              key?: string;
-              sampleShards?: number;
-            }
+            { key?: string; sampleShards?: number }
           >?,
         ]
       : [
           WithKnownNameOrInlinedConfig<
             Limits,
             Name,
-            {
-              key?: string;
-              sampleShards?: number;
-            }
+            { key?: string; sampleShards?: number }
           >,
         ]
   ): Promise<GetValueReturns> {
-    return ctx.runQuery(this.component.lib.getValue, {
-      ...options[0],
-      name,
-      config: this.getConfig(options[0], name),
-    });
+    const config = this.getConfig(options[0], name);
+    const args = { ...options[0], name, config };
+    return config.lazy
+      ? runStaleQuery(ctx, this.component.lib.getValue, args)
+      : ctx.runQuery(this.component.lib.getValue, args);
   }
 
   /**
@@ -283,22 +312,44 @@ export class RateLimiter<
           `You must provide a config inline or define it in the constructor.`,
       );
     }
+    if (config.lazy && config.shards !== undefined) {
+      throw new Error(`Rate limit ${name} is lazy and can't be sharded.`);
+    }
     return config;
   }
 }
 
 export default RateLimiter;
 
+/**
+ * Run the given query. If inside a mutation, uses a stale snapshot.
+ */
+async function runStaleQuery<
+  Query extends FunctionReference<"query", "internal">,
+>(
+  ctx: QueryCtx | MutationCtx | ActionCtx,
+  query: Query,
+  args: FunctionArgs<Query>,
+): Promise<FunctionReturnType<Query>> {
+  const { type } = await ctx.meta.getFunctionMetadata();
+  return type === "mutation"
+    ? (ctx as MutationCtx).runQuery(query, args, { useStaleSnapshot: true })
+    : ctx.runQuery(query, args);
+}
+
 // Type utilities
 
-export type QueryCtx = Pick<GenericQueryCtx<GenericDataModel>, "runQuery">;
+export type QueryCtx = Pick<
+  GenericQueryCtx<GenericDataModel>,
+  "runQuery" | "meta"
+>;
 export type MutationCtx = Pick<
   GenericMutationCtx<GenericDataModel>,
-  "runQuery" | "runMutation"
+  "runQuery" | "runMutation" | "meta"
 >;
 export type ActionCtx = Pick<
   GenericActionCtx<GenericDataModel>,
-  "runQuery" | "runMutation" | "runAction"
+  "runQuery" | "runMutation" | "runAction" | "meta"
 >;
 type WithKnownNameOrInlinedConfig<
   Limits extends Record<string, RateLimitConfig>,

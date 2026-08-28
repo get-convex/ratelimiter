@@ -16,6 +16,7 @@ export const tokenBucketValidator = v.object({
   capacity: v.optional(v.number()),
   maxReserved: v.optional(v.number()),
   shards: v.optional(v.number()),
+  lazy: v.optional(v.boolean()),
   start: v.optional(v.null()),
 });
 
@@ -34,6 +35,7 @@ export const fixedWindowValidator = v.object({
   capacity: v.optional(v.number()),
   maxReserved: v.optional(v.number()),
   shards: v.optional(v.number()),
+  lazy: v.optional(v.boolean()),
   start: v.optional(v.number()),
 });
 

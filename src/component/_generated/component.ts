@@ -32,6 +32,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "token bucket";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -41,6 +42,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "fixed window";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -73,6 +75,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   | {
                       capacity?: number;
                       kind: "token bucket";
+                      lazy?: boolean;
                       maxReserved?: number;
                       period: number;
                       rate: number;
@@ -82,6 +85,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
                   | {
                       capacity?: number;
                       kind: "fixed window";
+                      lazy?: boolean;
                       maxReserved?: number;
                       period: number;
                       rate: number;
@@ -115,6 +119,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "token bucket";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -124,6 +129,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "fixed window";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -139,6 +145,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "token bucket";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -148,6 +155,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "fixed window";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -168,6 +176,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "token bucket";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;
@@ -177,6 +186,7 @@ export type ComponentApi<Name extends string | undefined = string | undefined> =
             | {
                 capacity?: number;
                 kind: "fixed window";
+                lazy?: boolean;
                 maxReserved?: number;
                 period: number;
                 rate: number;

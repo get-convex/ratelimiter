@@ -400,3 +400,47 @@ describe.each(["token bucket", "fixed window"] as const)(
     });
   },
 );
+
+describe("lazy configs", () => {
+  const config = {
+    kind: "token bucket",
+    rate: 1,
+    period: Hour,
+    lazy: true,
+  } as const;
+
+  test("can't be applied by rateLimit", async () => {
+    const t = convexTest(schema, modules);
+    await expect(
+      t.mutation(api.lib.rateLimit, { name: "lazy", config }),
+    ).rejects.toThrow("Rate limit config for lazy has `lazy: true`");
+  });
+
+  test("can't be queued when explicitly not lazy", async () => {
+    const t = convexTest(schema, modules);
+    const update = {
+      kind: "consume" as const,
+      name: "eager",
+      count: 1,
+      config: { ...config, lazy: false },
+      ts: Date.now(),
+    };
+    await expect(
+      t.mutation(api.lib.enqueueUpdates, { updates: [update] }),
+    ).rejects.toThrow("Rate limit config for eager has `lazy: false`");
+  });
+
+  test("are readable, since the lazy path checks through the same query", async () => {
+    const t = convexTest(schema, modules);
+    expect(
+      await t.query(api.lib.checkRateLimit, { name: "lazy", config }),
+    ).toEqual({ ok: true, retryAfter: undefined });
+    const { value, config: applied } = await t.query(api.lib.getValue, {
+      name: "lazy",
+      config,
+    });
+    expect(value).toBe(1);
+    // Collapsed onto the singleton shard the worker writes.
+    expect(applied.shards).toBe(1);
+  });
+});
