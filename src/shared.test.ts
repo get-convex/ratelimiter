@@ -1,5 +1,25 @@
+import type { Infer } from "convex/values";
 import { describe, expect, test } from "vitest";
+import type { configValidator, RateLimitConfig } from "./shared.js";
 import { calculateRateLimit } from "./shared.js";
+
+type Assert<T extends true> = T;
+
+describe("RateLimitConfig", () => {
+  test("every config is accepted by configValidator", () => {
+    type _ConfigMatchesValidator = Assert<
+      RateLimitConfig extends Infer<typeof configValidator> ? true : false
+    >;
+  });
+
+  test("every validator field appears on the config types", () => {
+    type _ConfigHasAllValidatorFields = Assert<
+      keyof Infer<typeof configValidator> extends keyof RateLimitConfig
+        ? true
+        : false
+    >;
+  });
+});
 
 const Second = 1_000;
 const Minute = 60 * Second;

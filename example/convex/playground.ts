@@ -18,8 +18,15 @@ export const consumeRateLimit = mutation({
     reserve: v.boolean(),
   },
   handler: async (ctx, args) => {
+    // The validators allow `applyUpdates: "asynchronously"` and `shards`
+    // together, but the RateLimitConfig type doesn't, so split them apart here.
+    const { applyUpdates, shards, ...rest } = args.config;
+    const config =
+      applyUpdates === "asynchronously"
+        ? { ...rest, applyUpdates }
+        : { ...rest, shards };
     return rateLimiter.limit(ctx, "demo", {
-      config: args.config,
+      config,
       count: args.count,
       reserve: args.reserve,
     });

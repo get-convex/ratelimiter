@@ -1,8 +1,8 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, type Infer } from "convex/values";
 import {
   calculateRateLimit,
+  configValidator,
   type RateLimitArgs,
-  type RateLimitConfig,
   type RateLimitError,
   type RateLimitReturns,
 } from "../shared.js";
@@ -127,7 +127,7 @@ async function checkRateLimitSharded(
   return { status: { ok, retryAfter }, updates };
 }
 
-export function configWithDefaults(config: RateLimitConfig) {
+export function configWithDefaults(config: Infer<typeof configValidator>) {
   return {
     ...config,
     shards: Math.round(config.shards || 1),
@@ -193,7 +193,7 @@ export async function getShard(
     .unique();
 }
 
-function shardConfig(config: RateLimitConfig, shards: number) {
+function shardConfig(config: Infer<typeof configValidator>, shards: number) {
   if (shards === 1) return config;
   const sharded = { ...config };
   sharded.rate /= shards;
@@ -209,7 +209,7 @@ function shardConfig(config: RateLimitConfig, shards: number) {
 // exported for testing only
 export function _checkRateLimitInternal(
   existing: { value: number; ts: number } | null,
-  config: RateLimitConfig,
+  config: Infer<typeof configValidator>,
   count: number = 1,
   reserve: boolean = false,
 ) {
