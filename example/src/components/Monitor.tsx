@@ -16,6 +16,8 @@ interface MonitorProps {
   opts?: UseRateLimitOptions;
   consumptionHistory?: ConsumptionEvent[];
   height?: string | number;
+  /** Title drawn above the graph. Defaults to the rate limit's name. */
+  label?: string;
 }
 
 function formatNumber(value: number) {
@@ -29,6 +31,7 @@ export function Monitor({
   opts,
   consumptionHistory = [],
   height = "320px",
+  label,
 }: MonitorProps) {
   const [timelineData, setTimelineData] = useState<
     Array<{ timestamp: number; value: number }>
@@ -147,7 +150,7 @@ export function Monitor({
       ctx.fillStyle = "#374151";
       ctx.font = "bold 14px Inter, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(opts?.name ?? "Tokens", width / 2, padding - 10);
+      ctx.fillText(label ?? opts?.name ?? "Tokens", width / 2, padding - 10);
 
       // Draw background grid
       ctx.strokeStyle = "#f3f4f6";
@@ -358,7 +361,7 @@ export function Monitor({
       // Schedule next frame
       animationRef.current = requestAnimationFrame(drawTimeline);
     },
-    [timelineData, consumptionHistory, capacity, opts?.name],
+    [timelineData, consumptionHistory, capacity, label, opts?.name],
   );
 
   // Setup canvas when component mounts or container size changes
