@@ -16,6 +16,9 @@ export const tokenBucketValidator = v.object({
   capacity: v.optional(v.number()),
   maxReserved: v.optional(v.number()),
   shards: v.optional(v.number()),
+  applyUpdates: v.optional(
+    v.union(v.literal("transactionally"), v.literal("asynchronously")),
+  ),
   start: v.optional(v.null()),
 });
 
@@ -34,6 +37,9 @@ export const fixedWindowValidator = v.object({
   capacity: v.optional(v.number()),
   maxReserved: v.optional(v.number()),
   shards: v.optional(v.number()),
+  applyUpdates: v.optional(
+    v.union(v.literal("transactionally"), v.literal("asynchronously")),
+  ),
   start: v.optional(v.number()),
 });
 
@@ -130,7 +136,10 @@ export const getValueReturns = v.object({
 
 export type GetValueReturns = Infer<typeof getValueReturns>;
 
-/** Lazy rate limits are never sharded: every update lands on this shard. */
+/**
+ * Rate limits that apply updates asynchronously are never sharded: every
+ * update lands on this shard.
+ */
 export const SINGLETON_SHARD = 0;
 
 export const vPendingUpdate = v.union(
