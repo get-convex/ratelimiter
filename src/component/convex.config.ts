@@ -1,3 +1,7 @@
 import { defineComponent } from "convex/server";
+import batchWorker from "@convex-dev/batch-worker/convex.config.js";
 
-export default defineComponent("rateLimiter");
+const component = defineComponent("rateLimiter");
+component.use(batchWorker);
+
+export default component;
