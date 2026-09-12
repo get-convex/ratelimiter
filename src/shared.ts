@@ -54,8 +54,38 @@ export const configValidator = v.union(
  * information.
  */
 export type RateLimitConfig =
-  | Infer<typeof tokenBucketValidator>
-  | Infer<typeof fixedWindowValidator>;
+  | (TokenBucketConfig & ShardedConfig)
+  | (TokenBucketConfig & AsyncConfig)
+  | (FixedWindowConfig & ShardedConfig)
+  | (FixedWindowConfig & AsyncConfig);
+
+type ShardedConfig = {
+  shards?: number;
+  applyUpdates?: "transactionally";
+};
+
+type AsyncConfig = {
+  applyUpdates?: "asynchronously";
+  shards?: never;
+};
+
+type TokenBucketConfig = {
+  kind: "token bucket";
+  rate: number;
+  period: number;
+  capacity?: number;
+  maxReserved?: number;
+  start?: null;
+};
+
+type FixedWindowConfig = {
+  kind: "fixed window";
+  rate: number;
+  period: number;
+  capacity?: number;
+  maxReserved?: number;
+  start?: number;
+};
 
 /**
  * Arguments for rate limiting.
@@ -95,7 +125,7 @@ export type RateLimitArgs = {
    */
   throws?: boolean;
   /** The rate limit configuration. See {@link RateLimitConfig}. */
-  config: RateLimitConfig;
+  config: Infer<typeof configValidator>;
 };
 
 export const rateLimitReturns = v.union(
@@ -166,7 +196,7 @@ export type PendingUpdate = Infer<typeof vPendingUpdate>;
  */
 export function calculateRateLimit(
   existing: { value: number; ts: number } | null,
-  config: RateLimitConfig,
+  config: Infer<typeof configValidator>,
   now: number = Date.now(),
   count: number = 0,
 ) {
