@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0
+## 0.4.0-alpha
 
 - Add a new async mode to the Rate Limiter component that improves throughput
   under highly concurrent workloads. Setting `applyUpdates: "asynchronously"` on
