@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- Add a new async mode to the Rate Limiter component that improves throughput
+  under highly concurrent workloads. Setting `applyUpdates: "asynchronously"` on
+  a limit in the `RateLimiter` client will cause updates to be enqueued to be
+  processed asynchronously, and checking the limit to use a stale snapshot,
+  providing eventual consistency instead of full transactionality.
+
 ## 0.3.2
 
 - Pass client-provided keys to the key function, don't trust them by default.

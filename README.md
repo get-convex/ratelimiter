@@ -45,7 +45,7 @@ rare), but will serve most real-world use cases.
 - Type-safe usage: you won't accidentally misspell a rate limit name.
 - Configurable for fixed window or token bucket algorithms.
 - Efficient storage and compute: storage is not proportional to requests.
-- Configurable sharding for scalability.
+- Configurable limits that apply updates in the background for scalability.
 - Transactional evaluation: all rate limit changes will roll back if your
   mutation fails.
 - Fairness guarantees via credit "reservation": save yourself from exponential
@@ -101,6 +101,13 @@ const rateLimiter = new RateLimiter(components.rateLimiter, {
   // Allows up to 3 in quick succession if they haven't sent many recently.
   sendMessage: { kind: "token bucket", rate: 10, period: MINUTE, capacity: 3 },
   failedLogins: { kind: "token bucket", rate: 10, period: HOUR },
+  // Apply updates asynchronously for eventual consistency.
+  llmTokenBudget: {
+    kind: "token bucket",
+    rate: 10,
+    period: HOUR,
+    applyUpdates: "asynchronously",
+  },
   // Use sharding to increase throughput without compromising on correctness.
   llmTokens: { kind: "token bucket", rate: 40000, period: MINUTE, shards: 10 },
   llmRequests: { kind: "fixed window", rate: 1000, period: MINUTE, shards: 10 },
@@ -256,7 +263,7 @@ const { config, value, ts } = calculateRateLimit(
 );
 ```
 
-### Scaling rate limiting with shards
+### Avoiding contention with asynchronous updates
 
 When many requests are happening at once, they can all be trying to modify the
 same values in the database. Because Convex provides strong transactions, they
@@ -267,16 +274,48 @@ contention for these values, it causes
 Convex automatically retries these a number of times with backoff, but it's
 still best to avoid them.
 
-Not to worry! To provide high throughput, we can use a technique called
-"sharding" where we break up the total capacity into individual buckets, or
-"shards". When we go to use some of that capacity, we check a random
+Using the **async** mode of the rate limiter can help increase the throughput of
+the rate limiter while avoiding OCC conflicts. In the `RateLimiter` config, set
+the limit's `applyUpdates` to `"asynchronously"`:
+
+```ts
+const rateLimiter = new RateLimiter(components.rateLimiter, {
+  llmTokens: {
+    kind: "token bucket",
+    rate: 40000,
+    period: MINUTE,
+    applyUpdates: "asynchronously",
+  },
+});
+```
+
+Instead of updating rate limits transactionally, updates are placed in a queue
+and applied in the background by a
+[Batch Worker](https://github.com/get-convex/batch-worker). Checking the limit
+inside a mutation reads from a stale database snapshot, so these rate limit
+calls will never conflict with concurrent writers.
+
+The trade-off is that asynchronous limits are eventually consistent. A large
+burst of concurrent callers can all succeed before the worker applies enough
+consumption to block new callers, which can cause the limit to go negative. Note
+that the consumption is still accounted for. When asynchronous updates exceed
+capacity, it goes negative and future requests will be rejected until enough
+time has passed to recover from the negative balance.
+
+If enforcing an exact instantaneous cap is required for your use case, consider
+using [`shards`](#scaling-rate-limiting-with-shards).
+
+### Scaling rate limiting with shards
+
+One option to increase throughput while maintaining transactionality is to
+"shard" the rate limit. We break up the total capacity into individual buckets,
+or "shards". When we go to use some of that capacity, we check a random
 shard.<sup>[1](#power-of-two)</sup> While sometimes we'll get unlucky and get
 rate limited when there was capacity elsewhere, we'll never violate the rate
 limit's upper bound.
 
 ```ts
 const rateLimiter = new RateLimiter(components.rateLimiter, {
-  // Use sharding to increase throughput without compromising on correctness.
   llmTokens: { kind: "token bucket", rate: 40000, period: MINUTE, shards: 10 },
   llmRequests: { kind: "fixed window", rate: 1000, period: MINUTE, shards: 10 },
 });
@@ -293,6 +332,8 @@ flexible in the overall period, then you can shard this by increasing the rate
 and period proportionally to get enough shards and capacity per shard:
 `{ shards: 50, rate: 250, period: 2.5 * SECOND }` or even better:
 `{ shards: 50, rate: 1000, period: 10 * SECOND }`.
+
+Note that an async rate limit cannot be sharded.
 
 #### Power of two
 
