@@ -6,6 +6,7 @@ import {
   rateLimitArgs,
   configValidator,
   rateLimitReturns,
+  vPendingUpdate,
   type GetValueReturns,
 } from "../shared.js";
 import {
@@ -14,6 +15,7 @@ import {
   getShard,
 } from "./internal.js";
 import { api } from "./_generated/api.js";
+import { pingWorker } from "./worker.js";
 
 export const rateLimit = mutation({
   args: rateLimitArgs,
@@ -96,6 +98,24 @@ export const getValue = query({
       shard: maxShard.shard,
       config,
     };
+  },
+});
+
+export const enqueueUpdates = mutation({
+  // Accept an array of updates to allow for implementing a batch enqueue
+  // method in the future, if needed.
+  args: { updates: v.array(vPendingUpdate) },
+  returns: v.null(),
+  handler: async (ctx, { updates }) => {
+    await Promise.all(
+      updates.map((update) =>
+        ctx.db.insert("pendingUpdates", {
+          update,
+          updatedAt: ctx.db.vars.commitTs,
+        }),
+      ),
+    );
+    await pingWorker(ctx);
   },
 });
 

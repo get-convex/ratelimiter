@@ -11,6 +11,7 @@
 import type * as internal_ from "../internal.js";
 import type * as lib from "../lib.js";
 import type * as time from "../time.js";
+import type * as worker from "../worker.js";
 
 import type {
   ApiFromModules,
@@ -23,6 +24,7 @@ const fullApi: ApiFromModules<{
   internal: typeof internal_;
   lib: typeof lib;
   time: typeof time;
+  worker: typeof worker;
 }> = anyApi as any;
 
 /**
